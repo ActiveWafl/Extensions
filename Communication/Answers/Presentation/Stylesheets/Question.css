@@ -1,0 +1,102 @@
+.Answers .Answer,
+.Question
+{
+	border-top: solid 1px #e5e5e5;
+	padding: .5em 0;
+}
+
+.Answers .Answer .AnswerDate,
+.Question .QuestionDate
+{
+    font-size: .75em;
+}
+.Answers .Answer .AnswerContent,
+.Question .QuestionContent
+{
+    clear: both;
+	padding: .5em 0 .5em 2em;
+    margin: .5em 0 0 0;
+}
+
+.Answers .Answer.Accepted
+{
+	border: solid 1px #66ee66;
+}
+
+.Answers .Answer .Comments,
+.Question .Comments
+{
+	padding: .5em 0 0 0;
+    margin-top: .5em;
+}
+.Answers .Answer .Comment.AddCommentLink,
+.Question .Comment.AddCommentLink
+{
+    font-size: .75em;
+}
+.QuestionCommentBox .NewComment
+{
+    width: 100%;
+    display: block;
+}
+.QuestionCommentBox button
+{
+    font-size: .85em;
+}
+.Answers .Answer .Comment,
+.Question .Comment
+{
+    font-size: .8em;
+    padding: .5em 0;
+    border-top: solid 1px #e5e5e5;
+    display: block;
+}
+#Answer
+{
+    width: 100%;
+    display: block;
+    height: 9em;
+}
+#AnswerContainer
+{
+    border-top: solid 1px #e5e5e5;
+    margin-bottom: 1em;
+    padding-top: .5em;
+}
+#AnswerContainer h3
+{
+    font-size: 1.2em;
+    margin-top: 1em;
+    margin-bottom: .5em;
+}
+#AnswerContainer select,
+#AnswerContainer input[type="text"],
+#AnswerContainer input[type="password"],
+#AnswerContainer input[type="datetime"],
+#AnswerContainer input[type="datetime-local"],
+#AnswerContainer input[type="date"],
+#AnswerContainer input[type="month"],
+#AnswerContainer input[type="time"],
+#AnswerContainer input[type="week"],
+#AnswerContainer input[type="number"],
+#AnswerContainer input[type="email"],
+#AnswerContainer input[type="url"],
+#AnswerContainer input[type="search"],
+#AnswerContainer input[type="tel"],
+#AnswerContainer input[type="color"]
+{
+	display: inline-block;
+	padding: .5em;
+	font-size: 1.25em;
+	color: #333333;
+}
+
+#AnswerContainer textarea
+{
+	width: 100%;
+	display: inline-block;
+	padding: 8px;	 
+	font-size: 1em;
+	line-height: 1.1em;
+	color: #333333;
+}

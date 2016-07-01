@@ -1,0 +1,26 @@
+This plugin makes it easy to add a user system to your website.
+You can use the built-in user database and data model, or you may supply your own.
+
+To use the built-in user table:
+1. Enable the extension in your web application Config/Extensions.php file
+2. Add a login form to any page, with two fields named "Username"|"EmailAddress" and "Password"*#
+3. Add a registration form to any page, with three fields "Username"|"EmailAddress", "Password", and "PasswordConfirm"*%@
+
+*You can use your own field names by specifying them in the extension config
+#You can instead use the LoginForm or MicroLoginForm controls
+%You can instead use the RegistrationForm control
+@If you use EmailAddress on the registration form, you'll also need an EmailAddressConfirm
+
+
+To use your own (or a 3rd party) user table:
+1. Enable the extension in your web application Config/Extensions.php file
+2. When you enable the extension in step one using \Wafl\Core::AddExtension(), you'll get an extension instance.  
+	Call this method on it: Set_UserClass($customUserClassName) (and optionally Set_UserGroupClass)^
+4. Add a login form to any page, with two fields named "Username"|"EmailAddress" and "Password"*#
+5. Add a registration form to any page, with three fields "Username"|"EmailAddress", "Password", and "PasswordConfirm"*%@
+
+^Your custom user class must implement IUserGroupSavableUser and your customer user group class must implement ISavableUserGroup
+*You can use your own field names by specifying them in the extension config
+#You can instead use the LoginForm or MicroLoginForm controls
+%You can instead use the RegistrationForm control
+@If you use EmailAddress on the registration form, you'll also need an EmailAddressConfirm

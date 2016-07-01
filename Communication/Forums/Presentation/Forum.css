@@ -1,0 +1,139 @@
+div#ForumsMain
+{
+    background-color: #ccddfe;
+    padding: 5px;
+}
+div#ForumsHeader
+{
+    background-color: #bcabab;
+    overflow: auto;
+    margin-bottom: 10px;
+}
+div#ForumsBreadCrumb
+{
+    float: left;
+}
+div#ForumsWhatsNew, div#ForumsSearch
+{
+    float: right;
+}
+
+div#ForumsMain div.CategoryInfo
+{
+    border: solid 2px #ccccee;
+    margin-bottom: 5px;
+    background-color: #ffffff;
+}
+div#ForumsMain div.CategoryInfo>div.CategoryHeader
+{
+    border: solid 1px #998888;
+}
+div#ForumsMain div.CategoryInfo>div.CategoryHeader>div.CategoryTitle
+{
+    background-color: #99aaef;
+}
+
+div#ForumsMain div.CategoryInfo>table.ForumsInfo
+{
+    width: 100%;
+    display: table;
+}
+div#ForumsMain div.CategoryInfo>table.ForumsInfo tr.ForumInfo
+{
+    display: table-row;
+}
+div#ForumsMain div.CategoryInfo>table.ForumsInfo tr.ForumInfo>td
+{
+    border-top: solid 1px #ccccee;
+    display: table-cell;
+}
+div#ForumsMain table tr>td.Icon
+{
+    width: 70px;
+}
+div#ForumsMain div.CategoryInfo>table.ForumsInfo tr.ForumInfo>td.ThreadAndPostCount
+{
+    width: 150px;
+}
+div#ForumsMain div.CategoryInfo>table.ForumsInfo tr.ForumInfo>td.LastPostInfo
+{
+    width: 200px;
+}
+
+div#ForumTools
+{
+    background-color: #ffffff;
+    text-align: right;
+    font-size: 12px;
+    height: 20px;
+}
+div#ForumTools>div
+{
+    display: inline-block;
+    margin: 5px;
+}
+
+table.ThreadTable
+{
+    display: table;
+    width: 100%;
+}
+
+table.ThreadTable tr.Header, table.ThreadTable div.Row
+{
+    display: table-row;
+}
+table.ThreadTable tr.Header
+{
+    background-color: #99aaef;
+}
+
+table.ThreadTable tr.Header>td, table.ThreadTable div.Row>td
+{
+    display: table-cell;
+}
+table.ThreadTable tr.Header>th
+{
+    border-top: solid 1px #6677ab;
+    border-bottom: solid 1px #6677ab;
+    text-align: center;
+}
+th#ThreadTableTitleHeader
+{
+    border-left: solid 1px #6677ab;
+    text-align: left;
+}
+th#ThreadTableLastPostHeader
+{
+    border-right: solid 1px #6677ab;
+    text-align: left;
+}
+table.ThreadTable tr.Row>td.RepliesAndViews
+{
+    width: 150px;
+}
+table.ThreadTable tr.Row>td.LastPostInfo
+{
+    width: 200px;
+}
+table.ThreadTable tr.Row>td.ActionColumn
+{
+    width: 30px;
+}
+
+div.NewPost
+{
+    background-color: #ffffff;
+    margin: 0 10px 10px 10px;
+    border: solid 1px #447789;
+}
+div.NewPost>div.Title
+{
+    background-color: #ababae;
+    border-bottom: solid 1px #447789;
+}
+div.NewPost>div.PostDetails
+{
+    padding: 20px;
+}
+

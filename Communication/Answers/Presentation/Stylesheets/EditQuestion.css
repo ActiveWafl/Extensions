@@ -1,0 +1,58 @@
+#MainContentWrapper select,
+#MainContentWrapper input[type="text"],
+#MainContentWrapper input[type="password"],
+#MainContentWrapper input[type="datetime"],
+#MainContentWrapper input[type="datetime-local"],
+#MainContentWrapper input[type="date"],
+#MainContentWrapper input[type="month"],
+#MainContentWrapper input[type="time"],
+#MainContentWrapper input[type="week"],
+#MainContentWrapper input[type="number"],
+#MainContentWrapper input[type="email"],
+#MainContentWrapper input[type="url"],
+#MainContentWrapper input[type="search"],
+#MainContentWrapper input[type="tel"],
+#MainContentWrapper input[type="color"]
+{
+	display: inline-block;
+	height: 22px;
+	padding: 8px;	 
+	font-size: 20px;
+	line-height: 22px;
+	color: #333333;
+}
+
+#MainContentWrapper textarea
+{
+	display: inline-block;
+	padding: 8px;	 
+	font-size: 16px;
+	line-height: 18px;
+	color: #333333;
+}
+
+#MainContentWrapper .SpinnerContainer input[type="text"]
+{
+	padding: 4px;	 
+	height: 18px;
+}
+#MainContentWrapper select,
+#MainContentWrapper input[type="file"] {
+	height: auto;
+	line-height: normal;
+}
+#EditQuestionForm .Row
+{
+	margin-top: 16px; 
+	background-color: #ffffff; 
+	padding: 12px 0;	
+}
+#EditQuestionForm button,
+#EditQuestionForm a.Button
+{
+	background-image: none;
+	background-color: #1f497d;
+	border: solid 3px #ffffff;
+	padding: 8px;
+	color: #ffffff;
+}

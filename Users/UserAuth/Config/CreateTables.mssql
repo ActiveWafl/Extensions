@@ -1,0 +1,27 @@
+if not exists (select * from sysobjects where name='{$PREFIX}UserGroups' and xtype='U')
+CREATE TABLE {$PREFIX}UserGroups (
+  UserGroupId int IDENTITY(1,1) NOT NULL,
+  Title varchar(145) NOT NULL,
+  PrivilegeLevel int NOT NULL DEFAULT '0',
+  PRIMARY KEY (UserGroupId)
+);
+
+if not exists (select * from sysobjects where name='{$PREFIX}Users' and xtype='U')
+CREATE TABLE {$PREFIX}Users (
+  UserId int IDENTITY(1,1) NOT NULL,
+  UserGroupId int NOT NULL,
+  EmailAddress varchar(245) NOT NULL,
+  PasswordHash varchar(32) NOT NULL,
+  LastLogin int NOT NULL DEFAULT '0',
+  PRIMARY KEY (UserId),
+  FOREIGN KEY (UserGroupId) REFERENCES {$PREFIX}UserGroups (UserGroupId) ON UPDATE CASCADE
+);
+
+if not exists (select * from sysobjects where name='{$PREFIX}Sessions' and xtype='U')
+CREATE TABLE {$PREFIX}Sessions (
+  SessionId varchar(32) NOT NULL,
+  UserId int,
+  StartDate int NOT NULL,
+  LastActivityDate int NOT NULL,
+  PRIMARY KEY (SessionId)
+);

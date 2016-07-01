@@ -1,0 +1,14 @@
+if not exists (select * from sysobjects where name='{$USERS_TABLE}' and xtype='U')
+CREATE TABLE {$USERS_TABLE} (
+  {$USERID_COLUMN} int IDENTITY(1,1) NOT NULL,
+  {$USERNAME_COLUMN} varchar(245) NOT NULL,
+  {$PASSWORD_COLUMN} varchar(32) NOT NULL
+  PRIMARY KEY ({$USERID_COLUMN})
+);
+
+if not exists (select * from sysobjects where name='{$SESSIONS_TABLE}' and xtype='U')
+CREATE TABLE {$SESSIONS_TABLE} (
+  {$SESSIONID_COLUMN} varchar(32) NOT NULL,
+  {$USERID_COLUMN} int
+  PRIMARY KEY ({$SESSIONID_COLUMN})
+);

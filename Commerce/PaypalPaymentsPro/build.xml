@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="PaypalPro Wafl Extension" default="Build">
+    <property name="ExtensionName" value="PaypalPaymentsPro"/>
+    <property name="ExtensionVersion" value="0.0.1" />
+    
+    <condition property="is_windows">
+        <os family="windows" />
+    </condition>
+
+    <target name="Build" depends="Build_windows,Build_linux" />
+    <target name="Build_windows" if="is_windows">
+        <echo message="Getting Wafl path..."/>
+        <property environment="env"/>
+        <property name="WaflPath" value="${env.WAFL_PATH}"/>
+        <echo message="done (${env.WAFL_PATH})"/>
+
+        <echo message="Compressing file contents..."/>
+
+        <delete file="${basedir}\${ExtensionName}.wext" />
+        <exec executable="${WaflPath}\Bin\wafl.bat">
+            <arg value="CompileExtension" />
+            <arg value="${ExtensionName}" />
+            <arg path="${basedir}" />
+            <arg path="${basedir}" />
+            <arg value="${ExtensionVersion}" />
+        </exec>
+    </target>
+
+    <target name="Build_linux" unless="is_windows">
+        <echo message="Getting Wafl path..."/>
+        <property environment="env"/>
+        <property name="WaflPath" value="${env.WAFL_PATH}"/>
+        <echo message="done (${env.WAFL_PATH})"/>
+
+        <echo message="Compressing file contents..."/>
+
+        <delete file="${basedir}/${ExtensionName}.wext" />
+        <exec executable="${WaflPath}/Bin/wafl">
+            <arg value="CompileExtension" />
+            <arg value="${ExtensionName}" />
+            <arg path="${basedir}" />
+            <arg path="${basedir}" />
+            <arg value="${ExtensionVersion}" />
+        </exec>
+    </target>
+
+</project>
