@@ -31,7 +31,7 @@ class Index implements \DblEj\Data\IIndex
 		{
 			throw new \DblEj\Communication\Http\InvalidAbsoluteUrlException ($serviceUrl,"Invalid Solr Url ($serviceUrl).  Url must contain a valid Solr host when connecting to a Solr index");
 		}
-		
+
 		$port = isset($uriParts["port"])?$uriParts["port"]:8983;
 		$this->_client = new \SolrClient(array(
 							'hostname'     => $uriParts["host"],
@@ -247,7 +247,7 @@ class Index implements \DblEj\Data\IIndex
 		}
 		return $success;
 	}
-	
+
     /**
      * Allows clients to check if this index is online.
      * The implementation should return a boolean indicating if the underlying service is online.
