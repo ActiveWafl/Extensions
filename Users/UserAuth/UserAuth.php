@@ -379,6 +379,7 @@ class UserAuth extends ExtensionBase implements \DblEj\Authentication\Integratio
 			{
 				Core::$CURRENT_USER = new $userClass();
 			}
+            \DblEj\Data\PersistableModel::SetCurrentUser(Core::$CURRENT_USER);
 		}
 		catch (\Exception $err)
 		{
