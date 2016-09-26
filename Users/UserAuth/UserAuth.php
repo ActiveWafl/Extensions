@@ -249,7 +249,6 @@ class UserAuth extends ExtensionBase implements \DblEj\Authentication\Integratio
 					$email		 = \Wafl\RequestVar(self::$_usernameRequestVariable);
 					$password1	 = \Wafl\RequestVar(self::$_passwordRequestVariable);
 					$password2	 = \Wafl\RequestVar(self::$_password2RequestVariable);
-
 					//check user
                     $userWhereArray = [];
                     foreach (self::$_usernameColumn as $usernameCol)
@@ -339,7 +338,7 @@ class UserAuth extends ExtensionBase implements \DblEj\Authentication\Integratio
 				}
 				UserGroup::RegisterUserGroup($group);
 			}
-			if (!Core::$CURRENT_USER->Get_UserGroup())
+			if ($defaultGroup && !Core::$CURRENT_USER->Get_UserGroup())
 			{
 				Core::$CURRENT_USER->Set_UserGroup($defaultGroup);
 			}
