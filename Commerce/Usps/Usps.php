@@ -118,6 +118,8 @@ implements \DblEj\Commerce\Integration\IShipperExtension, \DblEj\Commerce\Integr
                 }
                 return ["Status"=>$resultXml->TrackInfo->Status[0], "StatusDescription"=>$resultXml->TrackInfo->StatusSummary[0], "DeliveryDate"=>$resultXml->TrackInfo->ExpectedDeliveryDate[0], "Summary"=>$resultXml->TrackInfo->StatusSummary[0], "Events"=>$events];
             }
+        } else {
+            return [];
         }
     }
 
