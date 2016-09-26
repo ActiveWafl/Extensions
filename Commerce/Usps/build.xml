@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project name="Usps Wafl Extension" default="Build">
     <property name="ExtensionName" value="Usps"/>
-    
+    <property name="ExtensionVersion" value="0.0.2" />
+
     <condition property="is_windows">
         <os family="windows" />
     </condition>
@@ -21,6 +22,7 @@
             <arg value="${ExtensionName}" />
             <arg path="${basedir}" />
             <arg path="${basedir}" />
+            <arg value="${ExtensionVersion}" />
         </exec>
     </target>
 
