@@ -207,16 +207,54 @@ public static function AddManagedAccount($emailAddress, $nameOnAccount = null,
             $arrayKey = "external_account";
         }
 
+        $currency = "usd";
+        switch (strtoupper($countryCode))
+        {
+            case "US":
+                $currency = "usd";
+                break;
+            case "AU":
+                $currency = "aud";
+                break;
+            case "CA":
+                $currency = "cad";
+                break;
+            case "DK":
+                $currency = "eur";
+                break;
+            case "FI":
+                $currency = "eur";
+                break;
+            case "FR":
+                $currency = "eur";
+                break;
+            case "GB":
+                $currency = "eur";
+                break;
+            case "IE":
+                $currency = "eur";
+                break;
+            case "NO":
+                $currency = "eur";
+                break;
+            case "SE":
+                $currency = "eur";
+                break;
+        }
+        $accountData = [
+                            "object" => "bank_account",
+                            "account_number" => $accountNumber,
+                            "country" => $countryCode,
+                            "currency" => $currency,
+                            "routing_number" => $routingNumber
+                        ];
+        if ($routingNumber)
+        {
+            $accountData["routing_number"] = $routingNumber;
+        }
         $bankAccount = $stripeUserAccount->external_accounts->create(
             [
-                $arrayKey =>
-                [
-                    "object" => "bank_account",
-                    "account_number" => $accountNumber,
-                    "country" => $countryCode,
-                    "currency" => "usd",
-                    "routing_number" => $routingNumber
-                ]
+                $arrayKey => $accountData
             ]);
 		return $bankAccount;
 	}
@@ -639,8 +677,25 @@ public static function AddManagedAccount($emailAddress, $nameOnAccount = null,
                         break;
                 }
             }
-        } catch (\Exception $ex) {
-            $returnResult = new \DblEj\Integration\Ecommerce\PaymentProcessResult(\DblEj\Integration\Ecommerce\PaymentProcessResult::PAYMENTSTATUS_FAILED_OTHER, false, "No result recieved", "", "", null, null, $ex->getMessage());
+        } catch(\Stripe\Error\Card $ex) {
+          // Since it's a decline, \Stripe\Error\Card will be caught
+            $returnResult = new \DblEj\Integration\Ecommerce\PaymentProcessResult(\DblEj\Integration\Ecommerce\PaymentProcessResult::PAYMENTSTATUS_FAILED_REJECTED, false, $ex->getMessage()." ".$ex->getTraceAsString(), "", "", null, null, "There card was not accepted.  Please make sure that you are using a the right number for the right card and that the card has not reached it's credit limit.");
+        } catch (\Stripe\Error\RateLimit $ex) {
+          // Too many requests made to the API too quickly
+            $returnResult = new \DblEj\Integration\Ecommerce\PaymentProcessResult(\DblEj\Integration\Ecommerce\PaymentProcessResult::PAYMENTSTATUS_FAILED_OTHER, false, $ex->getMessage()." ".$ex->getTraceAsString(), "", "", null, null, "The payment processor is busy. Please try again soon.");
+        } catch (\Stripe\Error\InvalidRequest $ex) {
+          // Invalid parameters were supplied to Stripe's API
+            $returnResult = new \DblEj\Integration\Ecommerce\PaymentProcessResult(\DblEj\Integration\Ecommerce\PaymentProcessResult::PAYMENTSTATUS_FAILED_INVALID, false, $ex->getMessage()." ".$ex->getTraceAsString(), "", "", null, null, "The card was rejected. Please verify all of the card information and try again.");
+        } catch (\Stripe\Error\Authentication $ex) {
+          // Authentication with Stripe's API failed (maybe you changed API keys recently)
+            $returnResult = new \DblEj\Integration\Ecommerce\PaymentProcessResult(\DblEj\Integration\Ecommerce\PaymentProcessResult::PAYMENTSTATUS_FAILED_OTHER, false, $ex->getMessage()." ".$ex->getTraceAsString(), "", "", null, null, "There was an error authenticating with the payment processor");
+        } catch (\Stripe\Error\ApiConnection $ex) {
+          // Network communication with Stripe failed
+            $returnResult = new \DblEj\Integration\Ecommerce\PaymentProcessResult(\DblEj\Integration\Ecommerce\PaymentProcessResult::PAYMENTSTATUS_FAILED_OTHER, false, $ex->getMessage()." ".$ex->getTraceAsString(), "", "", null, null, "There was an error communicating with the payment processor");
+        } catch (\Stripe\Error\Base $ex) {
+            $returnResult = new \DblEj\Integration\Ecommerce\PaymentProcessResult(\DblEj\Integration\Ecommerce\PaymentProcessResult::PAYMENTSTATUS_FAILED_OTHER, false, $ex->getMessage()." ".$ex->getTraceAsString(), "", "", null, null, "There was an error with the payment processor");
+        } catch (Exception $ex) {
+            $returnResult = new \DblEj\Integration\Ecommerce\PaymentProcessResult(\DblEj\Integration\Ecommerce\PaymentProcessResult::PAYMENTSTATUS_FAILED_OTHER, false, $ex->getMessage()." ".$ex->getTraceAsString(), "", "", null, null, "There was a system error while processing the payment");
         }
         return $returnResult;
     }
@@ -705,8 +760,26 @@ public static function AddManagedAccount($emailAddress, $nameOnAccount = null,
             } else {
                 $saveResult = new \DblEj\Integration\Ecommerce\SaveCardResult("", "", "Invalid id", "Couldn't add card because the customer account is not valid");
             }
-        } catch (\Exception $ex) {
-            $saveResult = new \DblEj\Integration\Ecommerce\SaveCardResult("", $ex->getMessage()." ".$ex->getTraceAsString(), $ex->getMessage(), $ex->getMessage());
+        } catch(\Stripe\Error\Card $ex) {
+          // Since it's a decline, \Stripe\Error\Card will be caught
+            $saveResult = new \DblEj\Integration\Ecommerce\SaveCardResult("", $ex->getMessage()." ".$ex->getTraceAsString(), "Error saving card", "The card cannot be saved because it is invalid or unauthorized.");
+        } catch (\Stripe\Error\RateLimit $ex) {
+          // Too many requests made to the API too quickly
+            $saveResult = new \DblEj\Integration\Ecommerce\SaveCardResult("", $ex->getMessage()." ".$ex->getTraceAsString(), "Error saving card", "Payout system is temporarily down. Please try again soon.");
+        } catch (\Stripe\Error\InvalidRequest $ex) {
+          // Invalid parameters were supplied to Stripe's API
+            $saveResult = new \DblEj\Integration\Ecommerce\SaveCardResult("", $ex->getMessage()." ".$ex->getTraceAsString(), "Error saving card", "Invalid information provided.  Please double-check the card information and try again.");
+        } catch (\Stripe\Error\Authentication $ex) {
+          // Authentication with Stripe's API failed
+          // (maybe you changed API keys recently)
+            $saveResult = new \DblEj\Integration\Ecommerce\SaveCardResult("", $ex->getMessage()." ".$ex->getTraceAsString(), "Error saving card", "There was an error while saving the card.  Please contact Plazko.com support.");
+        } catch (\Stripe\Error\ApiConnection $ex) {
+          // Network communication with Stripe failed
+            $saveResult = new \DblEj\Integration\Ecommerce\SaveCardResult("", $ex->getMessage()." ".$ex->getTraceAsString(), "Error saving card", "There was an error while saving the card. This error might be temporary. Please try again.");
+        } catch (\Stripe\Error\Base $ex) {
+            $saveResult = new \DblEj\Integration\Ecommerce\SaveCardResult("", $ex->getMessage()." ".$ex->getTraceAsString(), "Error saving card", "There was an error while saving the card.");
+        } catch (Exception $ex) {
+            $saveResult = new \DblEj\Integration\Ecommerce\SaveCardResult("", $ex->getMessage()." ".$ex->getTraceAsString(), "Error saving card", "There was an error while saving the card.");
         }
         return $saveResult;
     }
@@ -759,18 +832,49 @@ public static function AddManagedAccount($emailAddress, $nameOnAccount = null,
                 $stripeAccount->email = $payeeEmailAddress;
                 $stripeAccount->legal_entity["first_name"] = $firstName;
                 $stripeAccount->legal_entity["last_name"] = $lastName;
-                $stripeAccount->legal_entity["business_name"] = $businessName;
-                $stripeAccount->legal_entity["business_tax_id"] = $taxId;
-                $stripeAccount->legal_entity["type"] = $businessName?"company":"individual";
-                $stripeAccount->legal_entity["dob"] = $dobArray;
-                $stripeAccount->tos_acceptance["date"] = $lastTermsAgreeDate;
-                $stripeAccount->tos_acceptance["ip"] = $lastTermsAgreeIp;
-                $stripeAccount->save();
+                if ($businessName)
+                {
+                    $stripeAccount->legal_entity["business_name"] = $businessName;
+                }
+                if ($country && ($country != $stripeAccount->country))
+                {
+                    //throw new \Wafl\Exceptions\Exception("Payout account added with country different than the account country", E_ERROR, null, "Cannot add an account that is in a different country than the country you used to sign up your shop.");
+                }
+                if ($state)
+                {
+                    $stripeAccount->legal_entity["address"]["state"] = $state;
+                }
+                $stripeAccount->legal_entity["address"]["city"] = $city;
+                if ($zip)
+                {
+                    $stripeAccount->legal_entity["address"]["postal_code"] = $zip;
+                }
+                if ($streetAddress)
+                {
+                    $stripeAccount->legal_entity["address"]["line1"] = $streetAddress;
+                } else {
+                    $stripeAccount->legal_entity["address"]["line1"] = "";
+                }
 
+                if ($taxId)
+                {
+                    $stripeAccount->legal_entity["business_tax_id"] = $taxId;
+                }
+                $stripeAccount->legal_entity["type"] = $businessName?"company":"individual";
+                if ($dobArray)
+                {
+                    $stripeAccount->legal_entity["dob"] = $dobArray;
+                }
+                if ($lastTermsAgreeDate)
+                {
+                    $stripeAccount->tos_acceptance["date"] = $lastTermsAgreeDate;
+                    $stripeAccount->tos_acceptance["ip"] = $lastTermsAgreeIp;
+                }
+                $saveResult = $stripeAccount->save();
             }
             if ($accountToken)
             {
-                if ($institutionNumber)
+                if ($accountType == "Bank Account")
                 {
                     $stripeResult = self::AddBankAccount($accountToken, $institutionNumber, $accountNumber, $country?$country:"US");
                     if ($stripeResult)
@@ -787,11 +891,52 @@ public static function AddManagedAccount($emailAddress, $nameOnAccount = null,
                     $saveResult = new \DblEj\Integration\Ecommerce\SaveCardResult("", "", "Invalid", "Couldn't add account, invalid", ["AccountToken"=>$accountToken]);
                 }
             } else {
-                $saveResult = new \DblEj\Integration\Ecommerce\SaveCardResult("", "", "Invalid id", "Couldn't add accunt because the account is not valid");
+                $saveResult = new \DblEj\Integration\Ecommerce\SaveCardResult("", "", "Invalid id", "Account is not valid");
             }
+        } catch(\Stripe\Error\Card $ex) {
+          // Since it's a decline, \Stripe\Error\Card will be caught
+            $saveResult = new \DblEj\Integration\Ecommerce\SaveCardResult("", $ex->getMessage()." ".$ex->getTraceAsString(), "Error saving account", "Invalid or unauthorized account.");
+        } catch (\Stripe\Error\RateLimit $ex) {
+          // Too many requests made to the API too quickly
+            $saveResult = new \DblEj\Integration\Ecommerce\SaveCardResult("", $ex->getMessage()." ".$ex->getTraceAsString(), "Error saving account", "Payout account system is temporarily down. Please try again soon.");
+        } catch (\Stripe\Error\InvalidRequest $ex) {
+          // Invalid parameters were supplied to Stripe's API
+            if ($ex->getStripeParam() == "external_account")
+            {
+                $saveResult = new \DblEj\Integration\Ecommerce\SaveCardResult("", $ex->getMessage()." ".$ex->getTraceAsString(), "Error saving account", $ex->getMessage());
+            }
+            elseif (substr($ex->getStripeParam(), 0, 16) == "external_account")
+            {
+                if (substr($ex->getMessage(), 0, 7) == "Missing")
+                {
+                    $errParam = str_replace("external_account[", "", $ex->getStripeParam());
+                    $errParam = str_replace("]", "", $errParam);
+                    $errParam = str_replace("_", " ", $errParam);
+                    $saveResult = new \DblEj\Integration\Ecommerce\SaveCardResult("", $ex->getMessage()." ".$ex->getTraceAsString(), "Error saving account", "$errParam is required");
+                } else {
+                    $errMsg = str_replace("external_account[", "", $ex->getMessage());
+                    $errMsg = str_replace("]", "", $errMsg);
+                    $saveResult = new \DblEj\Integration\Ecommerce\SaveCardResult("", $ex->getMessage()." ".$ex->getTraceAsString(), "Error saving account", $errMsg);
+                }
+            }
+            else
+            {
+                $saveResult = new \DblEj\Integration\Ecommerce\SaveCardResult("", $ex->getMessage()." ".$ex->getTraceAsString(), "Error saving account", "Unknown error: ".$ex->getMessage());
+            }
+        } catch (\Stripe\Error\Authentication $ex) {
+          // Authentication with Stripe's API failed
+          // (maybe you changed API keys recently)
+            $saveResult = new \DblEj\Integration\Ecommerce\SaveCardResult("", $ex->getMessage()." ".$ex->getTraceAsString(), "Error saving account", "Please contact Plazko.com support.");
+        } catch (\Stripe\Error\ApiConnection $ex) {
+          // Network communication with Stripe failed
+            $saveResult = new \DblEj\Integration\Ecommerce\SaveCardResult("", $ex->getMessage()." ".$ex->getTraceAsString(), "Error saving account", "This error might be temporary. Please try again.");
+
+        } catch (\Stripe\Error\Base $ex) {
+            $saveResult = new \DblEj\Integration\Ecommerce\SaveCardResult("", $ex->getMessage()." ".$ex->getTraceAsString(), "Error saving account", "Unknown error.".$ex->getMessage());
         } catch (\Exception $ex) {
-            $saveResult = new \DblEj\Integration\Ecommerce\SaveCardResult("", $ex->getMessage()." ".$ex->getTraceAsString(), $ex->getMessage(), $ex->getMessage());
+            $saveResult = new \DblEj\Integration\Ecommerce\SaveCardResult("", $ex->getMessage()." ".$ex->getTraceAsString(), "Error saving account", "Unknown error.".$ex->getMessage());
         }
+
         return $saveResult;
 
     }
