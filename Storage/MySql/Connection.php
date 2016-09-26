@@ -28,6 +28,8 @@ implements \DblEj\Data\IDatabaseConnection
 	private $_dbPassword;
 	private $_dbCatalog;
 	private $_lastQuery;
+    private $_dbPort = 3306;
+
 	private static $_designateViewsByStringPrefix = "";
 
 	/**
@@ -127,7 +129,7 @@ implements \DblEj\Data\IDatabaseConnection
             mysqli_options($this->_db, MYSQLI_OPT_INT_AND_FLOAT_NATIVE, 1);
         }
 
-		if (mysqli_real_connect($this->_db, $this->_dbServer, $this->_dbUser, $this->_dbPassword, $this->_dbCatalog))
+		if (mysqli_real_connect($this->_db, $this->_dbServer, $this->_dbUser, $this->_dbPassword, $this->_dbCatalog, $this->_dbPort))
 		{
 			try
 			{
@@ -165,13 +167,14 @@ implements \DblEj\Data\IDatabaseConnection
      * @param string $dbUser The user to login with.
      * @param string $dbPassword The password to login with.
      */
-	public function __construct($dbServer = null, $dbCatalog = null, $dbUser = null, $dbPassword = null)
+	public function __construct($dbServer = null, $dbCatalog = null, $dbUser = null, $dbPassword = null, $dbPort = 3306)
 	{
         parent::__construct();
 		$this->_dbServer	 = $dbServer;
 		$this->_dbUser		 = $dbUser;
 		$this->_dbPassword	 = $dbPassword;
 		$this->_dbCatalog	 = $dbCatalog;
+        $this->_dbPort       = $dbPort;
 	}
 
     /**
@@ -524,6 +527,11 @@ implements \DblEj\Data\IDatabaseConnection
     {
         return $this->_dbCatalog;
     }
+    public function Get_Port()
+    {
+        return $this->_dbPort;
+    }
+
     /**
      * Get an array of data representing the first row returned by the specified <i>$query</i>.
      *
