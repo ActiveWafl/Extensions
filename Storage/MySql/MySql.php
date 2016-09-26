@@ -15,7 +15,7 @@ class MySql extends ExtensionBase implements IDatabaseServerExtension
     protected static function getAvailableSettings()
     {
         return ["Connections"];
-        //return ["ReplicationRole", "AccessScope", "PersistModels", "ModelGroup", "Username", "Password", "CreateScript", "UpdateScript", "RequiredLocation", "Uri", "Catalog", "CharacterEncoding"];
+        //return ["ReplicationRole", "AccessScope", "PersistModels", "ModelGroup", "Username", "Password", "CreateScript", "UpdateScript", "RequiredLocation", "Uri", "Port", "Catalog", "CharacterEncoding"];
     }
     protected function ConfirmedConfigure($settingName, $settingValue)
     {
@@ -24,6 +24,7 @@ class MySql extends ExtensionBase implements IDatabaseServerExtension
             $connections = $settingValue;
             foreach ($connections as $connectionName => $connectionSettings)
             {
+                $dbPort = 3306;
                 foreach ($connectionSettings as $connectionSettingName => $connectionSettingValue)
                 {
                     switch ($connectionSettingName)
@@ -52,6 +53,9 @@ class MySql extends ExtensionBase implements IDatabaseServerExtension
                         case "Uri":
                             $dbServer = $connectionSettingValue;
                             break;
+                        case "Port":
+                            $dbPort = $connectionSettingValue;
+                            break;
                         case "Catalog":
                             $dbCatalog = $connectionSettingValue;
                             break;
@@ -67,7 +71,7 @@ class MySql extends ExtensionBase implements IDatabaseServerExtension
                     }
                 }
 
-                $connection = new Connection($dbServer, $dbCatalog, $dbUser, $dbPassword);
+                $connection = new Connection($dbServer, $dbCatalog, $dbUser, $dbPassword, $dbPort);
                 $connection->Set_CreateScript($createScript);
                 $connection->Set_UpdateScript($updateScript);
                 $connection->Set_RequiredStorageLocation($requiredLocation);
