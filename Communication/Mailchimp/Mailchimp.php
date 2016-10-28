@@ -30,7 +30,12 @@ implements \DblEj\Communication\Integration\ISubscriptionEmailerExtension
         $sendSucceed = isset($response["status"]) && ($response["status"] == "subscribed")?true:false;
         if (!$sendSucceed)
         {
-            $sendResultDetails = isset($response["detail"])?$response["detail"]:print_r($response, true);
+            if ($response["title"] == "Member Exists")
+            {
+                $sendResultDetails = "That email address is already subscribed to the newsletter";
+            } else {
+                $sendResultDetails = isset($response["detail"])?$response["detail"]:print_r($response, true);
+            }
         }
         return $sendSucceed;
     }
