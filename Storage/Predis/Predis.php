@@ -11,7 +11,7 @@ use Wafl\Core;
 class Predis extends ExtensionBase implements IDataStore
 {
 	/**
-	 * @var Redis 
+	 * @var Redis
 	 */
 	private $_predis;
 	private $_serverAddress="127.0.0.1";
@@ -22,6 +22,8 @@ class Predis extends ExtensionBase implements IDataStore
 	public function Initialize(\DblEj\Application\IApplication $app)
 	{
 		require_once("phar://" . __DIR__ . "/predis_0.8.6-dev.phar");
+
+        //the client is smart it doesnt actually connect here - it will connect on demand
 		$this->_predis = new \Predis\Client(array(
 							'host'     => $this->_serverAddress,
 							'port'     => $this->_serverPort,
@@ -33,21 +35,25 @@ class Predis extends ExtensionBase implements IDataStore
 		$this->_amReady=true;
 	}
 
-	public function SetData($key, $val)
+	public function SetData($key, $val, $dataExpiration = null)
 	{
-		$this->_predis->setex($key, $this->_timeout, serialize($val));
+        if (!$dataExpiration)
+        {
+            $dataExpiration = $this->_timeout;
+        }
+		$this->_predis->setex($key, $dataExpiration, serialize($val));
 	}
 
 	public function HasData($key)
 	{
 		return $this->_predis->exists($key);
-	}	
-	
+	}
+
 	public function GetData($key, $defaultValue = null)
 	{
 		return unserialize($this->_predis->get($key));
-	}	
-	
+	}
+
 	protected static function getAvailableSettings()
 	{
 		return array(
@@ -83,7 +89,7 @@ class Predis extends ExtensionBase implements IDataStore
 
 	public function PrepareSitePage($pageName)
 	{
-		
+
 	}
 
 	public static function Get_DatabaseInstallScripts()
