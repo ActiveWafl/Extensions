@@ -8,7 +8,6 @@ implements \DblEj\Commerce\Integration\IPaymentGatewayExtension
 {
     public function Initialize(\DblEj\Application\IApplication $app)
     {
-        require_once(__DIR__.DIRECTORY_SEPARATOR."Stripe3.4.0.phar");
     }
 
     /**
@@ -26,11 +25,12 @@ implements \DblEj\Commerce\Integration\IPaymentGatewayExtension
      * @return string the new account token
      * @throws \Exception
      */
-public static function AddManagedAccount($emailAddress, $nameOnAccount = null,
+    public static function AddManagedAccount($emailAddress, $nameOnAccount = null,
         $postalCode = null, $city = null, $stateOrCountyOrProvince = null,
         $country = null, $streetAddress = null, $businessName = null, $dob = null,
         $termsAgreementDate = null, $termsAgreementIp = null, $taxId = null)
 	{
+        require_once(__DIR__.DIRECTORY_SEPARATOR."Stripe3.4.0.phar");
         $nameParts = explode(" ", $nameOnAccount);
         $accountArray =
             [
@@ -131,6 +131,7 @@ public static function AddManagedAccount($emailAddress, $nameOnAccount = null,
      */
 	public static function AddCustomer($emailAddress = null, $description = null)
 	{
+        require_once(__DIR__.DIRECTORY_SEPARATOR."Stripe3.4.0.phar");
         $accountArray = ["email" => $emailAddress, "description" => $description];
         $customer = \Stripe\Customer::create($accountArray);
         return $customer->id;
@@ -138,6 +139,7 @@ public static function AddManagedAccount($emailAddress, $nameOnAccount = null,
 
 	public static function GetAllPaypalCustomers()
 	{
+        require_once(__DIR__.DIRECTORY_SEPARATOR."Stripe3.4.0.phar");
         $lastCustomerId = null;
         $chunkSize = 100;
 
@@ -164,6 +166,7 @@ public static function AddManagedAccount($emailAddress, $nameOnAccount = null,
 
 	public static function GetAllEvents($eventType, $startDate, $endDate)
 	{
+        require_once(__DIR__.DIRECTORY_SEPARATOR."Stripe3.4.0.phar");
         $lastEventId = null;
         $chunkSize = 100;
 
@@ -196,6 +199,7 @@ public static function AddManagedAccount($emailAddress, $nameOnAccount = null,
      */
 	public static function AddBankAccount ($managedAccountToken, $routingNumber, $accountNumber, $countryCode)
 	{
+        require_once(__DIR__.DIRECTORY_SEPARATOR."Stripe3.4.0.phar");
         if (substr($managedAccountToken, 0, 4) == "cus_")
         {
             $stripeUserAccount = \Stripe\Customer::retrieve($managedAccountToken);
@@ -268,6 +272,7 @@ public static function AddManagedAccount($emailAddress, $nameOnAccount = null,
      */
 	public static function DeleteBankAccount($managedAccountToken, $bankAccountToken)
 	{
+        require_once(__DIR__.DIRECTORY_SEPARATOR."Stripe3.4.0.phar");
         if (substr($managedAccountToken, 0, 4) == "cus_")
         {
             $stripeUserAccount = \Stripe\Customer::retrieve($managedAccountToken);
@@ -304,6 +309,7 @@ public static function AddManagedAccount($emailAddress, $nameOnAccount = null,
         $securityCode = null, $address = null, $city = null, $stateOrCountyOrProvince = null, $postal = null, $email = null, $countryCode = "US"
     )
 	{
+        require_once(__DIR__.DIRECTORY_SEPARATOR."Stripe3.4.0.phar");
         if (substr($customerToken, 0, 4) == "cus_")
         {
             $stripeCustomer = \Stripe\Customer::retrieve($customerToken);
@@ -382,6 +388,7 @@ public static function AddManagedAccount($emailAddress, $nameOnAccount = null,
         $securityCode = null, $address = null, $city = null, $state = null, $postal = null, $email = null, $countryCode = "US", $recipientAccountId = null, $commission = 0
     )
 	{
+        require_once(__DIR__.DIRECTORY_SEPARATOR."Stripe3.4.0.phar");
         $accountArray =
         [
             "amount" => $amount,
@@ -444,6 +451,7 @@ public static function AddManagedAccount($emailAddress, $nameOnAccount = null,
      */
 	public static function DeleteCard($customerToken, $cardToken)
 	{
+        require_once(__DIR__.DIRECTORY_SEPARATOR."Stripe3.4.0.phar");
         if (substr($customerToken, 0, 4) == "cus_")
         {
             $stripeCustomer = \Stripe\Customer::retrieve($customerToken);
@@ -472,6 +480,7 @@ public static function AddManagedAccount($emailAddress, $nameOnAccount = null,
      */
 	public static function CreditBankAccount($amount, $bankAccountToken, $statementDescription = null, $internalDescription = null)
 	{
+        require_once(__DIR__.DIRECTORY_SEPARATOR."Stripe3.4.0.phar");
         $xferArray =
             array(
                 "amount" => $amount,
@@ -504,6 +513,7 @@ public static function AddManagedAccount($emailAddress, $nameOnAccount = null,
      */
 	public static function ChargeSavedCard($amount, $customerToken, $cardToken, $description = null, &$rawSentToApi = null, $recipientAccountId = null, $commission = 0)
 	{
+        require_once(__DIR__.DIRECTORY_SEPARATOR."Stripe3.4.0.phar");
         $chargeArray =
             array(
                 "amount" => $amount,
@@ -599,6 +609,7 @@ public static function AddManagedAccount($emailAddress, $nameOnAccount = null,
      */
     public function ProcessPayment($payerFirstName, $payerLastName, $payerAddress, $payerCity, $payerState, $payerPostal, $payerCountry, $amount, $paymentMethod, $accountNumber, $expirationMonth = null, $expirationYear = null, $securityCode = null, $currencyType = null, $notes = null, $invoiceId = null, $referenceCode = null, $recipientData = null, $paidForItems = null, $shippingAmount = null, $testMode = false, &$rawSentToApi = null, $customData = [])
     {
+        require_once(__DIR__.DIRECTORY_SEPARATOR."Stripe3.4.0.phar");
         try
         {
             $stripeResult = self::ChargeCard($amount*100, $payerFirstName." ".$payerLastName, $accountNumber, $expirationMonth, $expirationYear, $securityCode, $payerAddress, $payerCity, $payerState, $payerPostal, null, "US", (isset($recipientData["Data"]) && isset($recipientData["Data"]["AccountToken"]))?$recipientData["Data"]["AccountToken"]:null, ((isset($recipientData["Settings"]) && isset($recipientData["Settings"]["Commission"]))?($recipientData["Settings"]["Commission"]*100):null));
@@ -637,6 +648,7 @@ public static function AddManagedAccount($emailAddress, $nameOnAccount = null,
 
     public function ProcessSavedCardPayment($cardKey, $amount, $description = "", $payerId = null, $currencyType = "USD", $invoiceId = null, $paidForItems = null, $shippingAmount = null, $recipientData = null, $testMode = false, $buyerEmail = null, $buyerPhone = null, &$rawSentToApi = null, $customData = [])
     {
+        require_once(__DIR__.DIRECTORY_SEPARATOR."Stripe3.4.0.phar");
         try
         {
             if (!is_array($customData))
@@ -702,6 +714,7 @@ public static function AddManagedAccount($emailAddress, $nameOnAccount = null,
 
     public function RefundPayment($authorizationId, $amount, $partialRefund = false, $notes = null, $referenceCode = null, $testMode = false)
     {
+        require_once(__DIR__.DIRECTORY_SEPARATOR."Stripe3.4.0.phar");
         $originalPayment = \Stripe\Charge::retrieve($authorizationId);
 
         $refundArray =
@@ -725,6 +738,7 @@ public static function AddManagedAccount($emailAddress, $nameOnAccount = null,
 
     public function SavePaymentCard($userId, $firstName, $lastName, $cardType, $cardNumber, $expMonth, $expYear, $cvv2 = null, $streetAddress = null, $city = null, $state = null, $zip = null, $country = null, $testMode = false, $payerEmailAddress = null, $customData = null, $institutionNumber = null)
     {
+        require_once(__DIR__.DIRECTORY_SEPARATOR."Stripe3.4.0.phar");
         try
         {
             $customerToken = null;
@@ -811,6 +825,7 @@ public static function AddManagedAccount($emailAddress, $nameOnAccount = null,
 
     public function SavePayoutAccount($userId, $firstName, $lastName, $accountType, $accountNumber, $businessName = null, $institutionNumber = null, $expMonth = null, $expYear = null, $cvv2 = null, $streetAddress = null, $city = null, $state = null, $zip = null, $country = null, $taxId = null, $dob = null, $payeeEmailAddress = null, $customData = array(), $testMode = false)
     {
+        require_once(__DIR__.DIRECTORY_SEPARATOR."Stripe3.4.0.phar");
         try
         {
             $accountToken = null;
