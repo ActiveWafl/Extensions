@@ -6,6 +6,9 @@ class Index implements \DblEj\Data\IIndex
 	private $_client;
 	private $_indexname;
     private $_searchServlet;
+    private $_serviceUrl;
+    private $_loginId;
+    private $_password;
 
 	public function __construct($indexname, $searchServlet="select")
 	{
@@ -22,26 +25,38 @@ class Index implements \DblEj\Data\IIndex
      */
 	public function Connect($serviceUrl, $loginId=null, $password=null)
 	{
-		$uriParts = parse_url($serviceUrl);
-		if (!isset($uriParts["scheme"]))
-		{
-			throw new \DblEj\Communication\IncompleteUrlException("Invalid index service Url");
-		}
-		if (!isset($uriParts["host"]))
-		{
-			throw new \DblEj\Communication\Http\InvalidAbsoluteUrlException ($serviceUrl,"Invalid Solr Url ($serviceUrl).  Url must contain a valid Solr host when connecting to a Solr index");
-		}
-
-		$port = isset($uriParts["port"])?$uriParts["port"]:8983;
-		$this->_client = new \SolrClient(array(
-							'hostname'     => $uriParts["host"],
-							'login'     => $loginId,
-							'password' => $password,
-							'port'	=>	$port,
-							'path'	=> $uriParts["path"]."/".$this->_indexname));
-        $this->_client->setServlet(\SolrClient::SEARCH_SERVLET_TYPE, $this->_searchServlet);
+        $this->_serviceUrl = $serviceUrl;
+        $this->_loginId = $loginId;
+        $this->_password = $password;
 	}
 
+    private $_connected = false;
+
+    private function _connectOnDemand()
+    {
+        if (!$this->_connected)
+        {
+            $this->_connected = true;
+            $uriParts = parse_url($this->_serviceUrl);
+            if (!isset($uriParts["scheme"]))
+            {
+                throw new \DblEj\Communication\IncompleteUrlException("Invalid index service Url");
+            }
+            if (!isset($uriParts["host"]))
+            {
+                throw new \DblEj\Communication\Http\InvalidAbsoluteUrlException ($this->_serviceUrl,"Invalid Solr Url ($this->_serviceUrl).  Url must contain a valid Solr host when connecting to a Solr index");
+            }
+
+            $port = isset($uriParts["port"])?$uriParts["port"]:8983;
+            $this->_client = new \SolrClient(array(
+                                'hostname'     => $uriParts["host"],
+                                'login'     => $this->_loginId,
+                                'password' => $this->_password,
+                                'port'	=>	$port,
+                                'path'	=> $uriParts["path"]."/".$this->_indexname));
+            $this->_client->setServlet(\SolrClient::SEARCH_SERVLET_TYPE, $this->_searchServlet);
+        }
+    }
     /**
      * Add the specified document to the solr index.
      *
@@ -52,6 +67,8 @@ class Index implements \DblEj\Data\IIndex
 	 */
 	public function Index(\DblEj\Data\IIndexable $indexableItem)
 	{
+        $this->_connectOnDemand();
+
 		$doc = new \SolrInputDocument();
 
         foreach ($indexableItem->GetIndexableData() as $dataName=>$data)
@@ -88,6 +105,7 @@ class Index implements \DblEj\Data\IIndex
 	 */
 	function Search($fieldToSearchOn, $searchPhrase, $startOffset=0, $count=null, array $returnFields=null, array $sorts=null, $args=null)
 	{
+        $this->_connectOnDemand();
 		if ($returnFields == null)
 		{
 			$returnFields = array("*");
@@ -99,6 +117,7 @@ class Index implements \DblEj\Data\IIndex
 		$returnArray = array();
         $excProximity = null;
         $nonexcProximity = null;
+        $exclusiveFieldGroups = [];
         if ($args && is_array($args) && isset($args["ExclusiveProximity"]))
         {
             $excProximity = $args["ExclusiveProximity"];
@@ -107,34 +126,91 @@ class Index implements \DblEj\Data\IIndex
         {
             $nonexcProximity = $args["NonExclusiveProximity"];
         }
+        if ($args && is_array($args) && isset($args["ExclusiveFieldGroups"]))
+        {
+            $exclusiveFieldGroups = $args["ExclusiveFieldGroups"];
+        }
 
         $queryString = "";
 		if (is_array($fieldToSearchOn))
         {
+            $indexesByFieldName = [];
+            $queriesByFieldName = [];
+            foreach ($fieldToSearchOn as $fieldIdx=>$fieldName)
+            {
+                if (!isset($indexesByFieldName[$fieldName]))
+                {
+                    $indexesByFieldName[$fieldName] = [];
+                    $queriesByFieldName[$fieldName] = "";
+                }
+                $indexesByFieldName[$fieldName][] = $fieldIdx;
+            }
+            foreach ($indexesByFieldName as $fieldName => $fieldIndexes)
+            {
+                if (isset($exclusiveFieldGroups[$fieldName]))
+                {
+                    $groupQuery = "";
+                    foreach ($exclusiveFieldGroups[$fieldName] as $attributeTypeId=>$groupedExclusiveFields)
+                    {
+                        $innerGroupQuery = "";
+                        foreach ($groupedExclusiveFields as $groupSearchString)
+                        {
+                            if ($innerGroupQuery)
+                            {
+                                $innerGroupQuery .= " OR ";
+                            }
+                            if ($excProximity)
+                            {
+                                $innerGroupQuery .= "$fieldName: \"".  str_replace("\"", "\\\"", $groupSearchString)."\"~$excProximity";
+                            } else {
+                                $innerGroupQuery .= "$fieldName: ".(str_replace("\"", "\\\"", $groupSearchString));
+                            }
+                        }
+                        if ($innerGroupQuery)
+                        {
+                            if ($groupQuery)
+                            {
+                                $groupQuery .= " AND ";
+                            }
+                            $groupQuery .= "($innerGroupQuery)";
+                        }
+                    }
+                    if ($groupQuery)
+                    {
+                        $queriesByFieldName[$fieldName] .= "($groupQuery)";
+                    }
+                } else {
+                    foreach ($fieldIndexes as $fieldIdx)
+                    {
+                        $searchString = $searchPhrase[$fieldIdx];
+                        $queriesByFieldName[$fieldName] = $queriesByFieldName[$fieldName] ? $queriesByFieldName[$fieldName]." OR ":$queriesByFieldName[$fieldName];
+                        if ($excProximity)
+                        {
+                            $queriesByFieldName[$fieldName] .= "$fieldName: \"".  str_replace("\"", "\\\"", $searchString)."\"~$excProximity";
+                        } else {
+                            $queriesByFieldName[$fieldName] .= "$fieldName: ".(str_replace("\"", "\\\"", $searchString));
+                        }
+                    }
+                }
+            }
+
             if ($args && is_array($args) && isset($args["ExclusiveFields"]))
             {
                 $exclusiveFields = $args["ExclusiveFields"];
                 $queryStringExc = "";
                 $queryStringNonExc = "";
-                foreach ($fieldToSearchOn as $fieldIdx=>$fieldName)
+
+                foreach ($queriesByFieldName as $fieldName=>$query)
                 {
-                    $searchString = $searchPhrase[$fieldIdx];
-                    if (array_search($fieldName, $exclusiveFields) !== false)
+                    if ($query)
                     {
-                        $queryStringExc = $queryStringExc ? $queryStringExc." AND ":$queryStringExc;
-                        if ($excProximity)
+                        if (array_search($fieldName, $exclusiveFields) !== false)
                         {
-                            $queryStringExc .= "($fieldName: \"".  str_replace("\"", "\\\"", $searchString)."\"~$excProximity)";
+                            $queryStringExc = $queryStringExc ? $queryStringExc." AND ":$queryStringExc;
+                            $queryStringExc .= "($query)";
                         } else {
-                            $queryStringExc .= "($fieldName: ".(str_replace("\"", "\\\"", $searchString)).")";
-                        }
-                    } else {
-                        $queryStringNonExc = $queryStringNonExc ? $queryStringNonExc." OR ":$queryStringNonExc;
-                        if ($nonexcProximity)
-                        {
-                            $queryStringNonExc .= "($fieldName: \"".str_replace("\"", "\\\"", $searchString)."\"~$nonexcProximity)";
-                        } else {
-                            $queryStringNonExc .= "($fieldName: ".(str_replace("\"", "\\\"", $searchString)).")";
+                            $queryStringNonExc = $queryStringNonExc ? $queryStringNonExc." OR ":$queryStringNonExc;
+                            $queryStringNonExc .= "($query)";
                         }
                     }
                 }
@@ -151,14 +227,16 @@ class Index implements \DblEj\Data\IIndex
                     $queryString = $queryStringNonExc;
                 }
             } else {
-                foreach ($fieldToSearchOn as $fieldIdx=>$fieldName)
+                foreach ($queriesByFieldName as $fieldName=>$query)
                 {
-                    $searchString = $searchPhrase[$fieldIdx];
-                    if ($nonexcProximity)
+                    if ($query)
                     {
-                        $queryString .= "($fieldName: \"".str_replace("\"", "\\\"", $searchString)."\"~$nonexcProximity)\r\n";
-                    } else {
-                        $queryString .= "($fieldName: ".(str_replace("\"", "\\\"", $searchString)).")\r\n";
+                        if ($nonexcProximity)
+                        {
+                            $queryString .= "($query)\r\n";
+                        } else {
+                            $queryString .= "($query)\r\n";
+                        }
                     }
                 }
             }
@@ -170,10 +248,12 @@ class Index implements \DblEj\Data\IIndex
                 $queryString .= "($fieldToSearchOn: ".(str_replace("\"", "\\\"", $searchPhrase)).")\r\n";
             }
         }
+
 		try
 		{
 			$query = new \SolrQuery();
 			$query->setQuery($queryString);
+            error_log($startOffset.": ".$queryString);
 			$query->setStart($startOffset);
 			if ($count)
 			{
@@ -193,6 +273,7 @@ class Index implements \DblEj\Data\IIndex
 					$query->addSortField($sort->Get_FieldName(),$sort->Get_Direction()==SORT_ASC?\SolrQuery::ORDER_ASC:\SolrQuery::ORDER_DESC);
 				}
 			}
+
 			$response = $this->_client->query($query);
 			$response->setParseMode(\SolrQueryResponse::PARSE_SOLR_OBJ);
             $results = $response->getResponse();
@@ -207,6 +288,8 @@ class Index implements \DblEj\Data\IIndex
 				}
 			}
 		} catch (\SolrClientException $ex) {
+		} catch (\SolrServerException $ex) {
+            die($query);
 			throw new \Exception("Unable to search the index with the provided query.  <pre><code><xmp>".$ex->getMessage()."</xmp></code></pre>",\E_ERROR,$ex);
 		}
 		return $returnArray;
@@ -219,6 +302,7 @@ class Index implements \DblEj\Data\IIndex
      */
 	public function Unindex($indexerQuery)
 	{
+        $this->_connectOnDemand();
 		$success=false;
 		try
 		{
@@ -237,6 +321,7 @@ class Index implements \DblEj\Data\IIndex
      */
 	public function UnindexByUid($Uid)
 	{
+        $this->_connectOnDemand();
 		$success=false;
 		try
 		{
@@ -256,6 +341,7 @@ class Index implements \DblEj\Data\IIndex
      */
 	public function Ping()
 	{
+        $this->_connectOnDemand();
 		$response = $this->_client->ping();
 		return $response->success();
 	}
