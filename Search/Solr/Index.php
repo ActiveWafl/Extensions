@@ -253,7 +253,6 @@ class Index implements \DblEj\Data\IIndex
 		{
 			$query = new \SolrQuery();
 			$query->setQuery($queryString);
-            error_log($startOffset.": ".$queryString);
 			$query->setStart($startOffset);
 			if ($count)
 			{
@@ -289,8 +288,7 @@ class Index implements \DblEj\Data\IIndex
 			}
 		} catch (\SolrClientException $ex) {
 		} catch (\SolrServerException $ex) {
-            die($query);
-			throw new \Exception("Unable to search the index with the provided query.  <pre><code><xmp>".$ex->getMessage()."</xmp></code></pre>",\E_ERROR,$ex);
+			throw new \Exception("Unable to search the index with the provided query ($query).  <pre><code><xmp>".$ex->getMessage()."</xmp></code></pre>",\E_ERROR,$ex);
 		}
 		return $returnArray;
 	}
