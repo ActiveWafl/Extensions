@@ -25,9 +25,9 @@ class Search extends \DblEj\Extension\ExtensionControllerBase
         }
         if (strlen($search)>2)
         {
-            $search = \Wafl\Core::$STORAGE_ENGINE->EscapeString($search);
-            $posts = \Wafl\Extensions\Communication\Blog\Models\FunctionalModel\BlogPost::Filter("IsPublished=1 and (($tagsTable.$tagKey = BlogPostTags.TagId and BlogPostTags.BlogPostId = BlogPosts.BlogPostId and $tagsTable.$tagField like '$search') or (BlogPosts.Title like '%$search%'))","BlogPosts.PostDate desc", null, null, array($tagsTable=>null,"BlogPostTags"=>null));
-            $termMatches = \Wafl\Extensions\Communication\Blog\Models\FunctionalModel\BlogPost::Filter("Title like '%$search%' and IsPublished = 1","PostDate desc", 100);
+            $sqlSearch = \Wafl\Core::$STORAGE_ENGINE->EscapeString($search);
+            $posts = \Wafl\Extensions\Communication\Blog\Models\FunctionalModel\BlogPost::Filter("IsPublished=1 and (($tagsTable.$tagKey = BlogPostTags.TagId and BlogPostTags.BlogPostId = BlogPosts.BlogPostId and $tagsTable.$tagField like '$sqlSearch') or (BlogPosts.Title like '%$sqlSearch%'))","BlogPosts.PostDate desc", null, null, array($tagsTable=>null,"BlogPostTags"=>null));
+            $termMatches = \Wafl\Extensions\Communication\Blog\Models\FunctionalModel\BlogPost::Filter("Title like '%$sqlSearch%' and IsPublished = 1","PostDate desc", 100);
             $posts = array_merge($posts, $termMatches);
         } else {
             $posts=[];
