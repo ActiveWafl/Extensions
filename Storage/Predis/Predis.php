@@ -21,7 +21,7 @@ class Predis extends ExtensionBase implements IDataStore
     private $_timeout = 3600;
 	public function Initialize(\DblEj\Application\IApplication $app)
 	{
-		require_once("phar://" . __DIR__ . "/predis_0.8.6-dev.phar");
+		require_once("phar://" . __DIR__ . "/predis_1.1.0.phar");
 
         //the client is smart it doesnt actually connect here - it will connect on demand
 		$this->_predis = new \Predis\Client(array(
