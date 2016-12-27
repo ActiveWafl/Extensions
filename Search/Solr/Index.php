@@ -272,20 +272,35 @@ class Index implements \DblEj\Data\IIndex
 					$query->addSortField($sort->Get_FieldName(),$sort->Get_Direction()==SORT_ASC?\SolrQuery::ORDER_ASC:\SolrQuery::ORDER_DESC);
 				}
 			}
-
+            if ($args && is_array($args) && isset($args["FacetField"]))
+            {
+                $facetField = $args["FacetField"];
+                $query->addFacetField($facetField);
+                $query->setFacet(true);
+            }
+            $returnRaw = false;
+            if ($args && is_array($args) && isset($args["ReturnRaw"]))
+            {
+                $returnRaw = $args["ReturnRaw"];
+            }
 			$response = $this->_client->query($query);
 			$response->setParseMode(\SolrQueryResponse::PARSE_SOLR_OBJ);
             $results = $response->getResponse();
-			if ($results->responseHeader->status == 0)
-			{
-				if ($results->response->docs)
-				{
-					foreach ($results->response->docs as $solrDoc)
-					{
-						$returnArray[]=$solrDoc;
-					}
-				}
-			}
+            if ($returnRaw)
+            {
+                 $returnArray = $results;
+            } else {
+                if ($results->responseHeader->status == 0)
+                {
+                    if ($results->response->docs)
+                    {
+                        foreach ($results->response->docs as $solrDoc)
+                        {
+                            $returnArray[]=$solrDoc;
+                        }
+                    }
+                }
+            }
 		} catch (\SolrClientException $ex) {
 		} catch (\SolrServerException $ex) {
 			throw new \Exception("Unable to search the index with the provided query ($query).  <pre><code><xmp>".$ex->getMessage()."</xmp></code></pre>",\E_ERROR,$ex);
