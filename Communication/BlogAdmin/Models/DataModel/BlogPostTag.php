@@ -14,7 +14,7 @@ extends \DblEj\Extension\ExtensionDataModel
     /**
      * BlogPostTagId
      *
-     * Data Storage (Wafl\Extensions\Storage\MySql\MySql): 
+     * Data Storage (Wafl\Extensions\Storage\MySql\MySql):
      *        Primary Key
      *        Type: DATA_TYPE_INT unsigned
      *        Default: null
@@ -26,7 +26,7 @@ extends \DblEj\Extension\ExtensionDataModel
     /**
      * TagId
      *
-     * Data Storage (Wafl\Extensions\Storage\MySql\MySql): 
+     * Data Storage (Wafl\Extensions\Storage\MySql\MySql):
      *        Type: DATA_TYPE_INT unsigned
      *        Default: null
      *
@@ -37,7 +37,7 @@ extends \DblEj\Extension\ExtensionDataModel
     /**
      * BlogPostId
      *
-     * Data Storage (Wafl\Extensions\Storage\MySql\MySql): 
+     * Data Storage (Wafl\Extensions\Storage\MySql\MySql):
      *        Type: DATA_TYPE_INT unsigned
      *        Default: null
      *
@@ -75,10 +75,10 @@ extends \DblEj\Extension\ExtensionDataModel
      * @return \Wafl\Extensions\Communication\Blog\Models\FunctionalModel\BlogPostTag[]
      * @throws \Exception
      */
-    public static function Search($searchFieldName, $searchValue, $sorts = null, $maxResults = 100, $startOffset = 0, $resultKeyField = null, \DblEj\Data\IIndex $searchIndex = null)
+    public static function Search($searchFieldName, $searchValue, $sorts = null, $maxResults = 100, $startOffset = 0, $resultKeyField = null, \DblEj\Data\IIndex $searchIndex = null, $returnRaw = true)
     {
         self::Initialize();
-        return self::_search($searchFieldName, $searchValue, $sorts, $resultKeyField, $maxResults, $startOffset, $searchIndex);
+        return self::_search($searchFieldName, $searchValue, $sorts, $resultKeyField, $maxResults, $startOffset, $searchIndex, $returnRaw);
     }
     public static function Set_Extension($extension)
     {

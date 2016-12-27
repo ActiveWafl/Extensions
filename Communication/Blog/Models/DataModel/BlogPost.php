@@ -121,10 +121,10 @@ extends \DblEj\Extension\ExtensionDataModel
      * @return \Wafl\Extensions\Communication\Blog\Models\FunctionalModel\BlogPost[]
      * @throws \Exception
      */
-    public static function Search($searchFieldName, $searchValue, $sorts = null, $maxResults = 100, $startOffset = 0, $resultKeyField = null, \DblEj\Data\IIndex $searchIndex = null)
+    public static function Search($searchFieldName, $searchValue, $sorts = null, $maxResults = 100, $startOffset = 0, $resultKeyField = null, \DblEj\Data\IIndex $searchIndex = null, $returnRaw = false)
     {
         self::Initialize();
-        return self::_search($searchFieldName, $searchValue, $sorts, $resultKeyField, $maxResults, $startOffset, $searchIndex);
+        return self::_search($searchFieldName, $searchValue, $sorts, $resultKeyField, $maxResults, $startOffset, $searchIndex, $returnRaw);
     }
 
     /**
