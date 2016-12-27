@@ -28,7 +28,15 @@ implements \DblEj\Commerce\Integration\IPaymentGatewayExtension
         require_once("phar://".__DIR__.DIRECTORY_SEPARATOR."Stripe4.1.1.phar".DIRECTORY_SEPARATOR."Account.php");
         require_once("phar://".__DIR__.DIRECTORY_SEPARATOR."Stripe4.1.1.phar".DIRECTORY_SEPARATOR."ExternalAccount.php");
         require_once("phar://".__DIR__.DIRECTORY_SEPARATOR."Stripe4.1.1.phar".DIRECTORY_SEPARATOR."Customer.php");
+        require_once("phar://".__DIR__.DIRECTORY_SEPARATOR."Stripe4.1.1.phar".DIRECTORY_SEPARATOR."BankAccount.php");
         require_once("phar://".__DIR__.DIRECTORY_SEPARATOR."Stripe4.1.1.phar".DIRECTORY_SEPARATOR."Event.php");
+        require_once("phar://".__DIR__.DIRECTORY_SEPARATOR."Stripe4.1.1.phar".DIRECTORY_SEPARATOR."Error".DIRECTORY_SEPARATOR."Base.php");
+        require_once("phar://".__DIR__.DIRECTORY_SEPARATOR."Stripe4.1.1.phar".DIRECTORY_SEPARATOR."Error".DIRECTORY_SEPARATOR."Card.php");
+        require_once("phar://".__DIR__.DIRECTORY_SEPARATOR."Stripe4.1.1.phar".DIRECTORY_SEPARATOR."Error".DIRECTORY_SEPARATOR."InvalidRequest.php");
+        require_once("phar://".__DIR__.DIRECTORY_SEPARATOR."Stripe4.1.1.phar".DIRECTORY_SEPARATOR."Error".DIRECTORY_SEPARATOR."RateLimit.php");
+        require_once("phar://".__DIR__.DIRECTORY_SEPARATOR."Stripe4.1.1.phar".DIRECTORY_SEPARATOR."Error".DIRECTORY_SEPARATOR."Authentication.php");
+        require_once("phar://".__DIR__.DIRECTORY_SEPARATOR."Stripe4.1.1.phar".DIRECTORY_SEPARATOR."Error".DIRECTORY_SEPARATOR."ApiConnection.php");
+
     }
 
     /**
@@ -49,7 +57,7 @@ implements \DblEj\Commerce\Integration\IPaymentGatewayExtension
     public static function AddManagedAccount($emailAddress, $nameOnAccount = null,
         $postalCode = null, $city = null, $stateOrCountyOrProvince = null,
         $country = null, $streetAddress = null, $businessName = null, $dob = null,
-        $termsAgreementDate = null, $termsAgreementIp = null, $taxId = null)
+        $termsAgreementDate = null, $termsAgreementIp = null, $taxId = null, $ssnLastFour = null)
 	{
         require_once(__DIR__.DIRECTORY_SEPARATOR."Stripe4.1.1.phar");
         $nameParts = explode(" ", $nameOnAccount);
@@ -70,7 +78,8 @@ implements \DblEj\Commerce\Integration\IPaymentGatewayExtension
                     [
                         "type"=>"individual",
                         "first_name" => $firstName,
-                        "last_name" => $lastName
+                        "last_name" => $lastName,
+                        "ssn_last_4" => $ssnLastFour
                     ];
             }
             if ($businessName)
@@ -155,6 +164,20 @@ implements \DblEj\Commerce\Integration\IPaymentGatewayExtension
         require_once("phar://".__DIR__.DIRECTORY_SEPARATOR."Stripe4.1.1.phar".DIRECTORY_SEPARATOR."Stripe.php");
         $accountArray = ["email" => $emailAddress, "description" => $description];
         $customer = \Stripe\Customer::create($accountArray);
+        return $customer->id;
+	}
+
+	public static function EditCustomer($customerToken, $emailAddress = null, $description = null)
+	{
+        require_once("phar://".__DIR__.DIRECTORY_SEPARATOR."Stripe4.1.1.phar".DIRECTORY_SEPARATOR."Stripe.php");
+        $customer = \Stripe\Customer::retrieve($customerToken);
+
+        if ($customer)
+        {
+            $customer->email = $emailAddress;
+            $customer->description = $description;
+            $customer->save();
+        }
         return $customer->id;
 	}
 
@@ -711,7 +734,32 @@ implements \DblEj\Commerce\Integration\IPaymentGatewayExtension
             }
         } catch(\Stripe\Error\Card $ex) {
           // Since it's a decline, \Stripe\Error\Card will be caught
-            $returnResult = new \DblEj\Integration\Ecommerce\PaymentProcessResult(\DblEj\Integration\Ecommerce\PaymentProcessResult::PAYMENTSTATUS_FAILED_REJECTED, false, $ex->getMessage()." ".$ex->getTraceAsString(), "", "", null, null, "There card was not accepted.  Please make sure that you are using a the right number for the right card and that the card has not reached it's credit limit.");
+            $body = $ex->getJsonBody();
+            switch ($body["error"]["code"])
+            {
+                case "invalid_number";
+                case "invalid_cvc";
+                case "invalid_zip";
+                    $returnResult = new \DblEj\Integration\Ecommerce\PaymentProcessResult(\DblEj\Integration\Ecommerce\PaymentProcessResult::PAYMENTSTATUS_FAILED_INVALID, false, $ex->getMessage()." ".$ex->getTraceAsString(), "", "", null, null, $body["error"]["message"]);
+                    break;
+                case "invalid_expiry_month";
+                case "invalid_expiry_year";
+                    $returnResult = new \DblEj\Integration\Ecommerce\PaymentProcessResult(\DblEj\Integration\Ecommerce\PaymentProcessResult::PAYMENTSTATUS_FAILED_EXPIRATION, false, $ex->getMessage()." ".$ex->getTraceAsString(), "", "", null, null, $body["error"]["message"]);
+                    break;
+                case "incorrect_cvc";
+                case "incorrect_zip";
+                    $returnResult = new \DblEj\Integration\Ecommerce\PaymentProcessResult(\DblEj\Integration\Ecommerce\PaymentProcessResult::PAYMENTSTATUS_FAILED_SECURITY, false, $ex->getMessage()." ".$ex->getTraceAsString(), "", "", null, null, $body["error"]["message"]);
+                    break;
+                case "card_declined";
+                    $returnResult = new \DblEj\Integration\Ecommerce\PaymentProcessResult(\DblEj\Integration\Ecommerce\PaymentProcessResult::PAYMENTSTATUS_FAILED_REJECTED, false, $ex->getMessage()." ".$ex->getTraceAsString(), "", "", null, null, $body["error"]["message"]);
+                    break;
+                case "missing";
+                    $returnResult = new \DblEj\Integration\Ecommerce\PaymentProcessResult(\DblEj\Integration\Ecommerce\PaymentProcessResult::PAYMENTSTATUS_FAILED_REJECTED, false, $ex->getMessage()." ".$ex->getTraceAsString(), "", "", null, null, "Payment account information is missing or invalid");
+                    break;
+                default:
+                    $returnResult = new \DblEj\Integration\Ecommerce\PaymentProcessResult(\DblEj\Integration\Ecommerce\PaymentProcessResult::PAYMENTSTATUS_FAILED_REJECTED, false, $ex->getMessage()." ".$ex->getTraceAsString(), "", "", null, null, $body["error"]["message"]);
+                    break;
+            }
         } catch (\Stripe\Error\RateLimit $ex) {
           // Too many requests made to the API too quickly
             $returnResult = new \DblEj\Integration\Ecommerce\PaymentProcessResult(\DblEj\Integration\Ecommerce\PaymentProcessResult::PAYMENTSTATUS_FAILED_OTHER, false, $ex->getMessage()." ".$ex->getTraceAsString(), "", "", null, null, "The payment processor is busy. Please try again soon.");
@@ -726,7 +774,7 @@ implements \DblEj\Commerce\Integration\IPaymentGatewayExtension
             $returnResult = new \DblEj\Integration\Ecommerce\PaymentProcessResult(\DblEj\Integration\Ecommerce\PaymentProcessResult::PAYMENTSTATUS_FAILED_OTHER, false, $ex->getMessage()." ".$ex->getTraceAsString(), "", "", null, null, "There was an error communicating with the payment processor");
         } catch (\Stripe\Error\Base $ex) {
             $returnResult = new \DblEj\Integration\Ecommerce\PaymentProcessResult(\DblEj\Integration\Ecommerce\PaymentProcessResult::PAYMENTSTATUS_FAILED_OTHER, false, $ex->getMessage()." ".$ex->getTraceAsString(), "", "", null, null, "There was an error with the payment processor");
-        } catch (Exception $ex) {
+        } catch (\Exception $ex) {
             $returnResult = new \DblEj\Integration\Ecommerce\PaymentProcessResult(\DblEj\Integration\Ecommerce\PaymentProcessResult::PAYMENTSTATUS_FAILED_OTHER, false, $ex->getMessage()." ".$ex->getTraceAsString(), "", "", null, null, "There was a system error while processing the payment");
         }
         return $returnResult;
@@ -796,7 +844,23 @@ implements \DblEj\Commerce\Integration\IPaymentGatewayExtension
             }
         } catch(\Stripe\Error\Card $ex) {
           // Since it's a decline, \Stripe\Error\Card will be caught
-            $saveResult = new \DblEj\Integration\Ecommerce\SaveCardResult("", $ex->getMessage()." ".$ex->getTraceAsString(), "Error saving card", "The card cannot be saved because it is invalid or unauthorized.");
+            $body = $ex->getJsonBody();
+            switch ($body["error"]["code"])
+            {
+                case "invalid_number";
+                case "invalid_expiry_month";
+                case "invalid_expiry_year";
+                case "invalid_cvc";
+                case "incorrect_cvc";
+                case "incorrect_zip";
+                    $saveResult = new \DblEj\Integration\Ecommerce\SaveCardResult("", $ex->getMessage()." ".$ex->getTraceAsString(), "Error saving card", $body["error"]["message"]);
+                    break;
+                case "card_declined";
+                    $saveResult = new \DblEj\Integration\Ecommerce\SaveCardResult("", $ex->getMessage()." ".$ex->getTraceAsString(), "Error saving card", $body["error"]["message"]);
+                default:
+                    $saveResult = new \DblEj\Integration\Ecommerce\SaveCardResult("", $ex->getMessage()." ".$ex->getTraceAsString(), "Error saving card", $body["error"]["message"]);
+                    break;
+            }
         } catch (\Stripe\Error\RateLimit $ex) {
           // Too many requests made to the API too quickly
             $saveResult = new \DblEj\Integration\Ecommerce\SaveCardResult("", $ex->getMessage()." ".$ex->getTraceAsString(), "Error saving card", "Payout system is temporarily down. Please try again soon.");
@@ -856,17 +920,23 @@ implements \DblEj\Commerce\Integration\IPaymentGatewayExtension
                 $accountToken = isset($customData["AccountToken"])?$customData["AccountToken"]:null;
                 $lastTermsAgreeDate = isset($customData["LastTermsAgreeDate"])?$customData["LastTermsAgreeDate"]:null;
                 $lastTermsAgreeIp = isset($customData["LastTermsAgreeIp"])?$customData["LastTermsAgreeIp"]:null;
+                $ssnLastFour = isset($customData["SsnLastFour"])?$customData["SsnLastFour"]:null;
             }
 
             if (!$accountToken)
             {
-                $accountToken = self::AddManagedAccount($payeeEmailAddress, $firstName." ".$lastName, $zip, $city, $state, $country, $streetAddress, $businessName, $dob, $lastTermsAgreeDate, $lastTermsAgreeIp, $taxId);
+                $accountToken = self::AddManagedAccount($payeeEmailAddress, $firstName." ".$lastName, $zip, $city, $state, $country, $streetAddress, $businessName, $dob, $lastTermsAgreeDate, $lastTermsAgreeIp, $taxId, $ssnLastFour);
             } else {
                 $dobArray = $dob?["day"=>date("d", $dob), "month"=>date("m", $dob), "year"=>date("Y", $dob)]:null;
                 $stripeAccount = \Stripe\Account::retrieve($accountToken);
                 $stripeAccount->email = $payeeEmailAddress;
                 $stripeAccount->legal_entity["first_name"] = $firstName;
                 $stripeAccount->legal_entity["last_name"] = $lastName;
+                if ($ssnLastFour)
+                {
+                    $stripeAccount->legal_entity["ssn_last_4"] = $ssnLastFour;
+                }
+
                 if ($businessName)
                 {
                     $stripeAccount->legal_entity["business_name"] = $businessName;
