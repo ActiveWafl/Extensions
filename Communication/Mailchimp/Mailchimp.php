@@ -40,6 +40,34 @@ implements \DblEj\Communication\Integration\ISubscriptionEmailerExtension
         return $sendSucceed;
     }
 
+    public function UnsubscribeUserFromList($listId, $emailAddress, &$sendResultDetails = null)
+    {
+        $url  = "https://us2.api.mailchimp.com/3.0/lists/$listId/members";
+        $sendInfo =
+        [
+            "key"=>self::$_apiKey,
+            "email_address"=>$emailAddress,
+            "status"=>"unsubscribed"
+        ];
+        $sendJson = JsonUtil::EncodeJson($sendInfo);
+        $response = Util::SendRequest($url, true, $sendJson, false, true, "wafl-mailchimp", self::$_apiKey);
+        $response = JsonUtil::DecodeJson($response);
+        $sendSucceed = isset($response["status"]) && ($response["status"] == "subscribed")?true:false;
+        if (!$sendSucceed)
+        {
+            $sendResultDetails = isset($response["detail"])?$response["detail"]:print_r($response, true);
+        }
+        return $sendSucceed;
+    }
+
+    public function GetListUser($listId, $emailAddress)
+    {
+        $userhash = md5(strtolower($emailAddress));
+        $url  = "https://us2.api.mailchimp.com/3.0/lists/$listId/members/$userhash";
+        $response = Util::SendRequest($url, false, "", false, true, "wafl-mailchimp", self::$_apiKey);
+        return JsonUtil::DecodeJson($response); //needs to be standardized to some wafl interface
+    }
+
 	protected static function getAvailableSettings()
 	{
 		return array("ApiKey");
