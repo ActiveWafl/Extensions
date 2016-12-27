@@ -12,6 +12,7 @@ class Report
 extends ControllerBase
 {
     private $_extraTemplateVariables = [];
+
     public function DefaultAction(Request $request, IMvcWebApplication $app)
     {
         $allInputs = $request->GetAllInputs();
@@ -99,13 +100,10 @@ extends ControllerBase
         {
             foreach ($array as $blockLabel=>$subArray)
             {
-                $subArrayFirstElement = reset($subArray);
-                if (is_array($subArrayFirstElement))
+                if (is_array($subArray))
                 {
-                    $csv .= $skipFrontString.$blockLabel."\n";
-                    $skipFields += 1;
+                    $csv .= $this->_arrayToCsv($subArray, $skipFields);
                 }
-                $csv .= $this->_arrayToCsv($subArray, $skipFields);
             }
         } else {
             $csv .= $skipFrontString.implode("\t", $array)."\n";

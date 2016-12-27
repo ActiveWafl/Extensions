@@ -6,6 +6,8 @@
             <ul>
                 {foreach $REPORTS as $REPORTID=>$REPORT}
                     <li><a href="?ReportId={$REPORTID}">{$REPORT->Get_Title()}</a>
+                {foreachelse}
+                    <li>No reports available
                 {/foreach}
             </ul>
         </div>

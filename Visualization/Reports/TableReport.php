@@ -38,10 +38,10 @@ implements IReport
         }
         return $fieldInfo[$fieldName];
     }
-    
+
     public function GetFieldDataType($fieldName)
     {
-        return $this->GetFieldInfo($fieldName)["Type"];
+        return $this->GetField($fieldName)["Type"];
     }
 
     protected function returnIndexedData($nonIndexedData)
