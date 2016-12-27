@@ -6,9 +6,11 @@ function smarty_function_form_input($params, $template)
 	$propertyValue		 = $params["field_value"];
 	$required			 = isset($params["required"]) ? $params["required"] : false;
 	$readOnly			 = isset($params["readonly"]) ? $params["readonly"] : false;
+	$disabled			 = isset($params["disabled"]) ? $params["disabled"] : false;
 	$elementId			 = isset($params["id"]) ? $params["id"] : $propertyName;
     $placeholder         = isset($params["placeholder"]) ? $params["placeholder"] : "";
-    
+    $inline             = isset($params["inline"]) ? $params["inline"] : false;
+
 	$labelElemArgs	 = "";
 	$inputElemArgs	 = "";
 	foreach ($params as $param => $paramVal)
@@ -28,7 +30,7 @@ function smarty_function_form_input($params, $template)
 	if (isset($params["label"]) && $params["label"] != "")
 	{
 		$labelString = $params["label"];
-	}    
+	}
 	if (isset($params["validation"]))
 	{
 		$minLength	 = isset($params["MinLength"]) ? $params["MinLength"] : 0;
@@ -46,16 +48,9 @@ function smarty_function_form_input($params, $template)
 	{
 		$validatorHtml = "";
 	}
-	if (isset($params["label"]) && $params["label"] != "")
-	{
-		$returnString .= "<label $labelElemArgs>" . $params["label"] . "&nbsp;$validatorHtml</label>";
-	}
-	else
-	{
-		$returnString .= $validatorHtml;
-	}
 	$requiredAttribute	 = $required ? "required " : "";
 	$readOnlyAttribute	 = $readOnly ? "readonly " : "";
+    $disabledAttribute   = $disabled ? "disabled " : "";
     $checkedAttribute    = $propertyValue ? "checked" : "";
 	if (isset($params["inputtag"]))
 	{
@@ -68,15 +63,15 @@ function smarty_function_form_input($params, $template)
     $escapedValue = htmlentities($propertyValue, ENT_COMPAT|ENT_HTML5);
 	if ($inputType == "text")
 	{
-		$returnString .= "<input type=\"$inputType\" name=\"$propertyName\" placeholder=\"$placeholder\" id=\"$elementId\" value=\"$escapedValue\" {$inputElemArgs}{$requiredAttribute}{$readOnlyAttribute}/>";
+        $returnString .= "<input type=\"$inputType\" name=\"$propertyName\" placeholder=\"$placeholder\" id=\"$elementId\" value=\"$escapedValue\" {$inputElemArgs}{$requiredAttribute}{$readOnlyAttribute}{$disabledAttribute}/>";
 	}
 	elseif ($inputType == "checkbox")
 	{
-        $returnString .= "<input type=\"$inputType\" name=\"$propertyName\" placeholder=\"$placeholder\" id=\"$elementId\" value=\"1\" {$inputElemArgs}{$requiredAttribute}{$readOnlyAttribute}{$checkedAttribute}/>";
+        $returnString .= "<input type=\"$inputType\" name=\"$propertyName\" placeholder=\"$placeholder\" id=\"$elementId\" value=\"1\" {$inputElemArgs}{$requiredAttribute}{$readOnlyAttribute}{$checkedAttribute}{$disabledAttribute}/>";
 	}
 	elseif ($inputType == "textarea")
 	{
-		$returnString .= "<textarea name=\"$propertyName\" id=\"$elementId\" placeholder=\"$placeholder\" {$inputElemArgs}{$requiredAttribute}{$readOnlyAttribute}>$propertyValue</textarea>";
+		$returnString .= "<textarea name=\"$propertyName\" id=\"$elementId\" placeholder=\"$placeholder\" {$inputElemArgs}{$requiredAttribute}{$readOnlyAttribute}{$disabledAttribute}>$propertyValue</textarea>";
 	}
 	elseif ($inputType == "select")
 	{
@@ -105,8 +100,25 @@ function smarty_function_form_input($params, $template)
                 $optionHtml .= "<option value=\"$optionVal\">$optionName</option>";
             }
         }
-		$returnString .= "<select name=\"$propertyName\" id=\"$elementId\" placeholder=\"$placeholder\" {$inputElemArgs}{$requiredAttribute}{$readOnlyAttribute}>$optionHtml</select>";
+		$returnString .= "<select name=\"$propertyName\" id=\"$elementId\" placeholder=\"$placeholder\" {$inputElemArgs}{$requiredAttribute}{$readOnlyAttribute}{$disabledAttribute}>$optionHtml</select>";
 	}
+
+	if (isset($params["label"]) && $params["label"] != "")
+	{
+        if ($inputType == "checkbox")
+        {
+            $returnString = "<label $labelElemArgs>$returnString " . $params["label"] . "&nbsp;$validatorHtml</label>";
+        } elseif ($inline) {
+            $returnString = "<label $labelElemArgs>" . $params["label"] . "&nbsp;$validatorHtml{$returnString}</label>";
+        } else {
+            $returnString = "<label $labelElemArgs>" . $params["label"] . "&nbsp;$validatorHtml</label>".$returnString;
+        }
+	}
+	else
+	{
+		$returnString = $validatorHtml.$returnString;
+	}
+
 	return $returnString;
 }
 
