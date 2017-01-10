@@ -17,9 +17,9 @@ class Category extends \DblEj\Extension\ExtensionControllerBase
         {
             throw new \Exception("Invalid category");
         }
-        $posts = \Wafl\Extensions\Communication\Blog\Models\FunctionalModel\BlogPost::Filter("BlogCategories.BlogCategoryId = $catId","BlogPosts.PostDate desc", 100, null, array("BlogCategories"=>"BlogCategoryId"));
-        $allposts = \Wafl\Extensions\Communication\Blog\Models\FunctionalModel\BlogPost::Filter("BlogCategories.BlogCategoryId = $catId","BlogPosts.PostDate desc", 100, null, array("BlogCategories"=>"BlogCategoryId"));
-        $tags = $tagModel::Filter("BlogPosts.BlogPostId = BlogPostTags.BlogPostId", null, null, null, ["BlogPosts"=>null, "BlogPostTags"=>"TagId"]);
+        $posts = \Wafl\Extensions\Communication\Blog\Models\FunctionalModel\BlogPost::Filter("BlogCategories.BlogCategoryId = $catId and BlogPosts.IsPublished = 1","BlogPosts.PostDate desc", 100, null, array("BlogCategories"=>"BlogCategoryId"));
+        $allposts = \Wafl\Extensions\Communication\Blog\Models\FunctionalModel\BlogPost::Filter("BlogCategories.BlogCategoryId = $catId and BlogPosts.IsPublished = 1","BlogPosts.PostDate desc", 100, null, array("BlogCategories"=>"BlogCategoryId"));
+        $tags = $tagModel::Filter("BlogPosts.BlogPostId = BlogPostTags.BlogPostId and BlogPosts.IsPublished = 1", null, null, null, ["BlogPosts"=>null, "BlogPostTags"=>"TagId"]);
         return $this->createResponseFromRequest($request, $app, new \DblEj\Data\ArrayModel(["ALL_CATEGORIES"=>$allCategories,"ALL_TAGS"=>$tags,"BLOG_CATEGORY"=>$category,"POSTS"=>$posts, "ALL_POSTS"=>$allposts]));
 	}
 }
