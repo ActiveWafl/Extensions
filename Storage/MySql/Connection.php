@@ -1826,7 +1826,7 @@ implements \DblEj\Data\IDatabaseConnection
 	private function TableExists($tableName)
 	{
 		$isTableName = false;
-        if (!self::$_tables || !count(self::$_tables))
+        if (!self::$_tables || !count(self::$_tables) || !isset(self::$_tables[$this->_dbCatalog]))
         {
             $this->UpdateStorageLocations();
         }
