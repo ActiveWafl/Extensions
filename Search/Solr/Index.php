@@ -231,6 +231,10 @@ class Index implements \DblEj\Data\IIndex
                 {
                     if ($query)
                     {
+                        if ($queryString)
+                        {
+                            $queryString .= " OR ";
+                        }
                         if ($nonexcProximity)
                         {
                             $queryString .= "($query)\r\n";
@@ -243,12 +247,11 @@ class Index implements \DblEj\Data\IIndex
         } else {
             if ($nonexcProximity)
             {
-                $queryString .= "($fieldToSearchOn: \"".str_replace("\"", "\\\"", $searchPhrase)."\"~$nonexcProximity)\r\n";
+                $queryString = "($fieldToSearchOn: \"".str_replace("\"", "\\\"", $searchPhrase)."\"~$nonexcProximity)\r\n";
             } else {
-                $queryString .= "($fieldToSearchOn: ".(str_replace("\"", "\\\"", $searchPhrase)).")\r\n";
+                $queryString = "($fieldToSearchOn: ".(str_replace("\"", "\\\"", $searchPhrase)).")\r\n";
             }
         }
-
 		try
 		{
 			$query = new \SolrQuery();
