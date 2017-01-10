@@ -76,7 +76,7 @@ implements \DblEj\Communication\Integration\IPostSharerExtension
                     $blogPost = Models\FunctionalModel\BlogPost::FilterFirst("UrlTitle = '$blogPostTitle'");
                     if (!$blogPost)
                     {
-                        throw new \Exception("Invalid blog post");
+                        throw new \DblEj\Communication\Http\Exception($request->Get_RequestUrl(), "Invalid blog post", 404);
                     }
                     $request->Set_RequestUrl($extensionPath."BlogPost");
                     $request->SetInput("BlogPostId", $blogPost->Get_BlogPostId());
