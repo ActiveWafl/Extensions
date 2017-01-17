@@ -159,11 +159,30 @@ class Index implements \DblEj\Data\IIndex
                             {
                                 $innerGroupQuery .= " OR ";
                             }
-                            if ($excProximity)
+
+                            if (stripos($groupSearchString, "[") === false)
                             {
-                                $innerGroupQuery .= "$fieldName: \"".  str_replace("\"", "\\\"", $groupSearchString)."\"~$excProximity";
+                                $fieldValues = explode(" ", $groupSearchString);
+                                foreach ($fieldValues as $fieldValue)
+                                {
+                                    $fieldValue = trim($fieldValue);
+                                    if ($fieldValue)
+                                    {
+                                        if ($excProximity)
+                                        {
+                                            $innerGroupQuery .= "$fieldName:\"".  str_replace("\"", "\\\"", $fieldValue)."\"~$excProximity\r\n";
+                                        } else {
+                                            $innerGroupQuery .= "$fieldName:".(str_replace("\"", "\\\"", $fieldValue))."\r\n";
+                                        }
+                                    }
+                                }
                             } else {
-                                $innerGroupQuery .= "$fieldName: ".(str_replace("\"", "\\\"", $groupSearchString));
+                                if ($excProximity)
+                                {
+                                    $innerGroupQuery .= "$fieldName:\"".  str_replace("\"", "\\\"", $groupSearchString)."\"~$excProximity\r\n";
+                                } else {
+                                    $innerGroupQuery .= "$fieldName:".(str_replace("\"", "\\\"", $groupSearchString))."\r\n";
+                                }
                             }
                         }
                         if ($innerGroupQuery)
@@ -184,11 +203,30 @@ class Index implements \DblEj\Data\IIndex
                     {
                         $searchString = $searchPhrase[$fieldIdx];
                         $queriesByFieldName[$fieldName] = $queriesByFieldName[$fieldName] ? $queriesByFieldName[$fieldName]." OR ":$queriesByFieldName[$fieldName];
-                        if ($excProximity)
+
+                        if (stripos($searchString, "[") === false)
                         {
-                            $queriesByFieldName[$fieldName] .= "$fieldName: \"".  str_replace("\"", "\\\"", $searchString)."\"~$excProximity";
+                            $fieldValues = explode(" ", $searchString);
+                            foreach ($fieldValues as $fieldValue)
+                            {
+                                $fieldValue = trim($fieldValue);
+                                if ($fieldValue)
+                                {
+                                    if ($excProximity)
+                                    {
+                                        $queriesByFieldName[$fieldName] .= "$fieldName:\"".  str_replace("\"", "\\\"", $fieldValue)."\"~$excProximity\r\n";
+                                    } else {
+                                        $queriesByFieldName[$fieldName] .= "$fieldName:".(str_replace("\"", "\\\"", $fieldValue))."\r\n";
+                                    }
+                                }
+                            }
                         } else {
-                            $queriesByFieldName[$fieldName] .= "$fieldName: ".(str_replace("\"", "\\\"", $searchString));
+                            if ($excProximity)
+                            {
+                                $queriesByFieldName[$fieldName] .= "$fieldName:\"".  str_replace("\"", "\\\"", $searchString)."\"~$excProximity\r\n";
+                            } else {
+                                $queriesByFieldName[$fieldName] .= "$fieldName:".(str_replace("\"", "\\\"", $searchString))."\r\n";
+                            }
                         }
                     }
                 }
@@ -245,11 +283,29 @@ class Index implements \DblEj\Data\IIndex
                 }
             }
         } else {
-            if ($nonexcProximity)
+            if (stripos($searchPhrase, "[") === false)
             {
-                $queryString = "($fieldToSearchOn: \"".str_replace("\"", "\\\"", $searchPhrase)."\"~$nonexcProximity)\r\n";
+                $fieldValues = explode(" ", $searchPhrase);
+                foreach ($fieldValues as $fieldValue)
+                {
+                    $fieldValue = trim($fieldValue);
+                    if ($fieldValue)
+                    {
+                        if ($nonexcProximity)
+                        {
+                            $queryString = "($fieldToSearchOn:\"".str_replace("\"", "\\\"", $fieldValue)."\"~$nonexcProximity)\r\n";
+                        } else {
+                            $queryString = "($fieldToSearchOn:".(str_replace("\"", "\\\"", $fieldValue)).")\r\n";
+                        }
+                    }
+                }
             } else {
-                $queryString = "($fieldToSearchOn: ".(str_replace("\"", "\\\"", $searchPhrase)).")\r\n";
+                if ($nonexcProximity)
+                {
+                    $queryString = "($fieldToSearchOn:\"".str_replace("\"", "\\\"", $searchPhrase)."\"~$nonexcProximity)\r\n";
+                } else {
+                    $queryString = "($fieldToSearchOn:".(str_replace("\"", "\\\"", $searchPhrase)).")\r\n";
+                }
             }
         }
 		try
