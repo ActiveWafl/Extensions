@@ -23,28 +23,28 @@ class Connection
 extends EventRaiser
 implements \DblEj\Data\IDatabaseConnection
 {
-	private $_dbServer;
-	private $_dbUser;
-	private $_dbPassword;
-	private $_dbCatalog;
-	private $_lastQuery;
+    private $_dbServer;
+    private $_dbUser;
+    private $_dbPassword;
+    private $_dbCatalog;
+    private $_lastQuery;
     private $_dbPort = 3306;
 
-	private static $_designateViewsByStringPrefix = "";
+    private static $_designateViewsByStringPrefix = "";
 
-	/**
-	 * Represents the connection to the database.
-	 *
-	 * @var mysqli
-	 */
-	private $_db;
-	private $_isConnected	 = false;
-	private static $_tables	 = array();
-	private $_createScript;
-	private $_updateScript;
-	private $_requiredLocation;
-	private $_modelGroup	 = "Default";
-    private $_charEncoding   = "utf8";
+    /**
+     * Represents the connection to the database.
+     *
+     * @var mysqli
+     */
+    private $_db;
+    private $_isConnected	 = false;
+    private static $_tables	 = array();
+    private $_createScript;
+    private $_updateScript;
+    private $_requiredLocation;
+    private $_modelGroup            = "Default";
+    private $_charEncoding          = "utf8";
 
     /**
      * A script that will create an application-defined data structure on this storage engine.
@@ -156,7 +156,7 @@ implements \DblEj\Data\IDatabaseConnection
      */
 	public function Get_ConnectionName()
 	{
-		return $this->_dbCatalog;
+            return $this->_dbCatalog;
 	}
 
     /**
@@ -169,12 +169,12 @@ implements \DblEj\Data\IDatabaseConnection
      */
 	public function __construct($dbServer = null, $dbCatalog = null, $dbUser = null, $dbPassword = null, $dbPort = 3306)
 	{
-        parent::__construct();
-		$this->_dbServer	 = $dbServer;
-		$this->_dbUser		 = $dbUser;
-		$this->_dbPassword	 = $dbPassword;
-		$this->_dbCatalog	 = $dbCatalog;
-        $this->_dbPort       = $dbPort;
+            parent::__construct();
+            $this->_dbServer	 = $dbServer;
+            $this->_dbUser       = $dbUser;
+            $this->_dbPassword	 = $dbPassword;
+            $this->_dbCatalog	 = $dbCatalog;
+            $this->_dbPort       = $dbPort;
 	}
 
     /**
@@ -185,7 +185,7 @@ implements \DblEj\Data\IDatabaseConnection
      */
 	public function UpdateStorageLocations()
 	{
-		self::$_tables[$this->_dbCatalog] = $this->GetStorageLocations();
+            self::$_tables[$this->_dbCatalog] = $this->GetStorageLocations();
 	}
 
     /**
@@ -194,7 +194,7 @@ implements \DblEj\Data\IDatabaseConnection
      */
 	function Set_CharacterEncoding($charSet)
 	{
-        $this->_charEncoding = $charSet;
+            $this->_charEncoding = $charSet;
 	}
 
 	/**
@@ -204,8 +204,8 @@ implements \DblEj\Data\IDatabaseConnection
 	 */
 	public function DirectExecute($sql)
 	{
-		$this->_lastQuery = $sql;
-		return $this->Execute($sql);
+            $this->_lastQuery = $sql;
+            return $this->Execute($sql);
 	}
 
 	/**
@@ -215,8 +215,8 @@ implements \DblEj\Data\IDatabaseConnection
 	 */
 	public function DirectQuery($sql)
 	{
-		$this->_lastQuery = $sql;
-		return $this->GetRowsAsArray($sql);
+            $this->_lastQuery = $sql;
+            return $this->GetRowsAsArray($sql);
 	}
 
     /**
@@ -230,28 +230,28 @@ implements \DblEj\Data\IDatabaseConnection
      */
 	public function DirectScriptExecute($filenameOrContents, $isContents = false)
 	{
-		if ($isContents)
-		{
-			$sql = $filenameOrContents;
-		}
-		else
-		{
-			$sql = file_get_contents($filenameOrContents);
-		}
-        $sql = str_replace("\r\n", "\n", $sql);
-		$sqlArray	 = array_filter(explode(";\n", $sql));
-		$total		 = count($sqlArray);
-		$current	 = 0;
-		foreach ($sqlArray as $sql)
-		{
-			$current++;
-			$sql = trim($sql);
-			if ($sql)
-			{
-				$this->Execute($sql);
-				$this->raiseEvent(new ScriptExecutedEvent("MySql Driver", $current, $total));
-			}
-		}
+            if ($isContents)
+            {
+                $sql = $filenameOrContents;
+            }
+            else
+            {
+                $sql = file_get_contents($filenameOrContents);
+            }
+            $sql = str_replace("\r\n", "\n", $sql);
+            $sqlArray	 = array_filter(explode(";\n", $sql));
+            $total		 = count($sqlArray);
+            $current	 = 0;
+            foreach ($sqlArray as $sql)
+            {
+                $current++;
+                $sql = trim($sql);
+                if ($sql)
+                {
+                    $this->Execute($sql);
+                    $this->raiseEvent(new ScriptExecutedEvent("MySql Driver", $current, $total));
+                }
+            }
         return true;
 	}
 
@@ -1825,28 +1825,28 @@ implements \DblEj\Data\IDatabaseConnection
      */
 	private function TableExists($tableName)
 	{
-		$isTableName = false;
-        if (!self::$_tables || !count(self::$_tables))
-        {
-            $this->UpdateStorageLocations();
-        }
-		if (isset(self::$_tables[$this->_dbCatalog][$tableName]))
-		{
-			$isTableName = true;
-		}
-		else
-		{
-			$isTableName = false;
-			foreach (self::$_tables[$this->_dbCatalog] as $testTableName => $tableValue)
-			{
-				if (strcasecmp($testTableName, $tableName) == 0)
-				{
-					$isTableName = true;
-					break;
-				}
-			}
-		}
-		return $isTableName;
+            $isTableName = false;
+            if (!self::$_tables || !count(self::$_tables) || !isset(self::$_tables[$this->_dbCatalog]))
+            {
+                $this->UpdateStorageLocations();
+            }
+            if (isset(self::$_tables[$this->_dbCatalog][$tableName]))
+            {
+                $isTableName = true;
+            }
+            else
+            {
+                $isTableName = false;
+                foreach (self::$_tables[$this->_dbCatalog] as $testTableName => $tableValue)
+                {
+                    if (strcasecmp($testTableName, $tableName) == 0)
+                    {
+                        $isTableName = true;
+                        break;
+                    }
+                }
+            }
+            return $isTableName;
 	}
 
     /**
