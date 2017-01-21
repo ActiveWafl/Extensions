@@ -21,7 +21,7 @@ function smarty_block_highlightcode($params, $content, $template, &$repeat) {
 			{
 				$language="Actionscript";
 			}
-            require_once("phar://".str_replace("\\","/",__DIR__)."/../../../Transformers/Geshi/GeSHi.phar/geshi.php");
+            require_once("phar://".str_replace("\\","/",__DIR__)."/../../../Transformers/GeSHi/GeSHi.phar/geshi.php");
             $geshi = new GeSHi($content, $language, null);
 			
 			if (strtolower($requestedLanguage) == "javascriptsignature")
