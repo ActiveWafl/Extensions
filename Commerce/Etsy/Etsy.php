@@ -16,6 +16,8 @@ implements \DblEj\Commerce\Integration\ISellerAggregatorExtension
     private static $_throttleRequestBlockSecond = 0;
     private static $_throttleRequestBlockRequestCount = 0;
 
+    private $_etsyShopName;
+
     public function Initialize(\DblEj\Application\IApplication $app)
     {
         if (AM_WEBPAGE)
@@ -24,10 +26,13 @@ implements \DblEj\Commerce\Integration\ISellerAggregatorExtension
         }
     }
 
-    public function GetOrders($shopId, $accessToken, $accessTokenSecret, $minLastModified = 0, $includeTransactions = true, $includeShippedOrders = false, $limit = 100)
+    public function GetOrders($minLastModified = 0, $limit = 100, $args = [])
     {
+        $args = ["min_last_modified"=>$minLastModified, "limit"=>$limit];
 
-        $args = ["was_paid"=>"true", "min_last_modified"=>$minLastModified, "limit"=>$limit];
+        $includeShippedOrders = isset($args["Shipped Orders"])?$args["Shipped Orders"]:false;
+        $includeTransactions = isset($args["Include Transaction Data"])?$args["Include Transaction Data"]:true;
+        $wasPaid = isset($args["Paid Orders"])?$args["Paid Orders"]:true;
 
         if (!$includeShippedOrders)
         {
@@ -37,7 +42,9 @@ implements \DblEj\Commerce\Integration\ISellerAggregatorExtension
         {
             $args["includes"]="Transactions:100";
         }
-        return $this->callApi("shops/$shopId/receipts", $args, $accessToken, $accessTokenSecret);
+        $args["was_paid"]=$wasPaid?"true":"false";
+
+        return $this->callApi("shops/$this->_etsyShopName/receipts", $args);
     }
 
     public function GetListingImageUrl($listingId)
@@ -65,26 +72,38 @@ implements \DblEj\Commerce\Integration\ISellerAggregatorExtension
         }
     }
 
-    public function Login($token = null, $tokenSecret = null, $verifier = null, $returnUrl = null)
+    public function Login($requestOrAccessToken = null, $tokenSecret = null, $verifier = null, $returnUrl = null)
     {
+        $app = \Wafl\Core::$RUNNING_APPLICATION;
         if (!$returnUrl)
         {
             $returnUrl = self::$_appUrl;
         }
-        $oAuth = new \OAuth(self::$_apiKey, self::$_apiSecret);
-        $oAuth->disableSSLChecks();
-        if ($token)
+        self::$_oauthObject = new \OAuth(self::$_apiKey, self::$_apiSecret);
+        self::$_oauthObject->disableSSLChecks();
+        if ($requestOrAccessToken && $verifier)
         {
-            $oAuth->setToken($token, $tokenSecret);
-            // set the verifier and request Etsy's token credentials url
-            $accessToken = $oAuth->getAccessToken(self::$_apiUrl."oauth/access_token", null, $verifier);
+            $tokenSecret = $app->GetSessionData("oauth_token_secret");
+
+            //have request token with verifier, get an access token
+            self::$_oauthObject->setToken($requestOrAccessToken, $tokenSecret);
+            $accessToken = self::$_oauthObject->getAccessToken(self::$_apiUrl."oauth/access_token", null, $verifier);
             return $accessToken;
+        }
+        elseif ($requestOrAccessToken && $tokenSecret)
+        {
+            //have access token, login complete
+            self::$_oauthObject->setToken($requestOrAccessToken, $tokenSecret);
+
+            //erase request token secret from session
+            $app->StoreSessionData("oauth_token_secret", null);
+            return true;
         } else {
-            $response = $oAuth->getRequestToken(self::$_apiUrl."oauth/request_token?scope=transactions_r&transactions_w", $returnUrl);
-            $token = $response["oauth_token"];
+            //no tokens, get a request token and redrect to etsy for autorization
+            $response = self::$_oauthObject->getRequestToken(self::$_apiUrl."oauth/request_token?scope=transactions_r&transactions_w", $returnUrl);
+            $requestOrAccessToken = $response["oauth_token"];
             $secret = $response["oauth_token_secret"];
 
-            $app = \Wafl\Core::$RUNNING_APPLICATION;
             $app->StoreSessionData("oauth_token_secret", $secret);
             \DblEj\Communication\Http\Util::HeaderRedirect($response["login_url"]);
             die();
@@ -93,7 +112,7 @@ implements \DblEj\Commerce\Integration\ISellerAggregatorExtension
 
     private static $_oauthObject = null;
 
-    private function callApi($uri, $parameters = [], $accessToken = null, $accessTokenSecret = null, $useOAuth = true)
+    private function callApi($uri, $parameters = [], $useOAuth = true)
     {
         $currentTime = microtime(true);
         if (($currentTime - self::$_throttleRequestBlockSecond) < 1)
@@ -110,15 +129,8 @@ implements \DblEj\Commerce\Integration\ISellerAggregatorExtension
             sleep(1);
         }
 
-        if ($useOAuth)
+        if (!$useOAuth)
         {
-            if (!self::$_oauthObject)
-            {
-                self::$_oauthObject = new \OAuth(self::$_apiKey, self::$_apiSecret, OAUTH_SIG_METHOD_HMACSHA1, OAUTH_AUTH_TYPE_URI);
-                self::$_oauthObject->disableSSLChecks();
-                self::$_oauthObject->setToken($accessToken, $accessTokenSecret);
-            }
-        } else {
             $parameters["api_key"] = self::$_apiKey;
         }
         $url = self::$_apiUrl.$uri."?";
@@ -139,7 +151,7 @@ implements \DblEj\Commerce\Integration\ISellerAggregatorExtension
 
 	protected static function getAvailableSettings()
 	{
-		return array("ApiKey", "ApiUrl", "ApiSecret", "MaxRequestsPerSecond");
+		return array("ApiKey", "ApiUrl", "ApiSecret", "MaxRequestsPerSecond", "Etsy Shop Name");
 	}
 
 	protected function ConfirmedConfigure($settingName, $settingValue)
@@ -157,6 +169,9 @@ implements \DblEj\Commerce\Integration\ISellerAggregatorExtension
                 break;
             case "MaxRequestsPerSecond":
                 self::$_maxRequestsPerSecond = $settingValue;
+                break;
+            case "Etsy Shop Name":
+                $this->_etsyShopName = $settingValue;
                 break;
 		}
 	}
@@ -177,6 +192,9 @@ implements \DblEj\Commerce\Integration\ISellerAggregatorExtension
 			case "MaxRequestsPerSecond":
 				return self::$_maxRequestsPerSecond;
 				break;
+            case "Etsy Shop Name":
+                return $this->_etsyShopName;
+                break;
 		}
     }
 
