@@ -790,9 +790,13 @@ implements \DblEj\Commerce\Integration\IPaymentGatewayExtension
             "charge" => $authorizationId,
             "amount" => $amount*100
         ];
-        if ($originalPayment->application_fee > 0)
+        if ($originalPayment->application_fee != null)
         {
             $refundArray["refund_application_fee"] = true;
+        }
+        if ($originalPayment->transfer != null)
+        {
+            $refundArray["reverse_transfer"] = true;
         }
 
         $refund = \Stripe\Refund::create($refundArray);
