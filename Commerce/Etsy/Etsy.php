@@ -47,6 +47,58 @@ implements \DblEj\Commerce\Integration\ISellerAggregatorExtension
         return $this->callApi("shops/$this->_etsyShopName/receipts", $args);
     }
 
+    public function GetShippingMethods()
+    {
+        $methods = [];
+        $templates = $this->callApi("users/$this->_etsyShopName/shipping/templates");
+        $upgrades = [];
+        $entries = [];
+        if (isset($templates["results"]))
+        {
+            foreach ($templates["results"] as $template)
+            {
+                $templateId = $template["shipping_template_id"];
+                $title = $template["title"];
+                $upgrades = $this->callApi("shipping/templates/$templateId/upgrades");
+                $entries = $this->callApi("shipping/templates/$templateId/entries");
+                if (isset($entries["results"]))
+                {
+                    foreach ($entries["results"] as $entry)
+                    {
+                        $countries = $this->callApi("countries/".$entry["destination_country_id"]);
+                        $countries = $countries["results"];
+                        if (count($countries) > 1)
+                        {
+                            $countryName = "International";
+                        }
+                        elseif (count($countries) == 1)
+                        {
+                            $country = $countries[0];
+                            $countryName = $country["name"];
+                        }
+                        else
+                        {
+                            $countryName = "";
+                        }
+                        $profileId = $entry["shipping_template_id"]."-".$entry["shipping_template_entry_id"];
+                        $price = $entry["primary_cost"];
+                        $methods[] = ["Title"=>trim("$title $countryName"), "Price"=>$price, "Uid"=>$profileId];
+                    }
+                }
+                if (isset($upgrades["results"]))
+                {
+                    foreach ($upgrades["results"] as $template)
+                    {
+                        $profileId = $template["shipping_profile_id"]."-".$template["value_id"];
+                        $title = $template["value"];
+                        $price = $template["price"];
+                        $methods[] = ["Title"=>$title, "Price"=>$price, "Uid"=>$profileId];
+                    }
+                }
+            }
+        }
+        return $methods;
+    }
     public function GetListingImageUrl($listingId)
     {
         return $this->callApi("listings/$listingId/images", [], null, null, false);
@@ -100,7 +152,7 @@ implements \DblEj\Commerce\Integration\ISellerAggregatorExtension
             return true;
         } else {
             //no tokens, get a request token and redrect to etsy for autorization
-            $response = self::$_oauthObject->getRequestToken(self::$_apiUrl."oauth/request_token?scope=transactions_r&transactions_w", $returnUrl);
+            $response = self::$_oauthObject->getRequestToken(self::$_apiUrl."oauth/request_token?scope=transactions_r%20transactions_w%20listings_r%20listings_w", $returnUrl);
             $requestOrAccessToken = $response["oauth_token"];
             $secret = $response["oauth_token_secret"];
 
@@ -151,7 +203,7 @@ implements \DblEj\Commerce\Integration\ISellerAggregatorExtension
 
 	protected static function getAvailableSettings()
 	{
-		return array("ApiKey", "ApiUrl", "ApiSecret", "MaxRequestsPerSecond", "Etsy Shop Name");
+		return array("ApiKey", "ApiUrl", "ApiSecret", "MaxRequestsPerSecond", "Etsy Shop Name", "Shipping Rate Mappings");
 	}
 
 	protected function ConfirmedConfigure($settingName, $settingValue)
