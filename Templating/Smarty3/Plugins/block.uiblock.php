@@ -2,7 +2,7 @@
 
 function smarty_block_uiblock($params, $content, $template, &$repeat) {
     if (!$repeat) {
-		$controlInstanceId = \DblEj\Util\Strings::GenerateRandomString(32);
+		//$controlInstanceId = \DblEj\Util\Strings::GenerateRandomString(32);
         if (!isset($params["name"])) {
             throw new \ErrorException("Template contains a reference to a unspecified control", 0, E_WARNING, __FILE__, __LINE__);
         }
@@ -12,10 +12,15 @@ function smarty_block_uiblock($params, $content, $template, &$repeat) {
         if (!isset($params["Version"])) {
             $params["Version"] = "0.0.1";
         }
+
         if (!isset($params["Id"])) {
-            $params["Id"] = $params["name"] . "_$controlInstanceId";
+            $contentIdString = strlen($content)>128?substr($content, 0, 128):$content;
+            $controlInstanceId = $params["name"]."_".md5($contentIdString);
+        } else {
+            $controlInstanceId = $params["Id"];
         }
 
+        $params["Id"] = $controlInstanceId;
         $controlName = $params["name"];
         $controlNameSpace = $params["namespace"];
         $version = $params["Version"];
