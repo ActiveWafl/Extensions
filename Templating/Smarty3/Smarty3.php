@@ -31,7 +31,7 @@ class Smarty3 extends ExtensionBase implements \DblEj\Presentation\Integration\I
 
 	public function Initialize(IApplication $app)
 	{
-		require_once("phar://" . __DIR__ . "/Smarty3.1.21.phar/Smarty.class.php");
+		require_once("phar://" . __DIR__ . "/Smarty3.1.30.phar/Smarty.class.php");
 		$this->_smarty = new \Smarty();
 		$this->AddPluginFolder(__DIR__ . "/Plugins/");
 		foreach ($this->_pluginFolders as $pluginFolder)
@@ -97,12 +97,12 @@ class Smarty3 extends ExtensionBase implements \DblEj\Presentation\Integration\I
 	{
 		$smartyData	 = $this->_smarty->createData($this->_smarty);
 		$tokens		 = $renderOptions->GetTokens();
-		if (count($tokens)==1) { $tokens = reset($tokens); }
 
 		foreach ($tokens as $tokenVar=>$tokenVal)
 		{
 			$smartyData->assign($tokenVar, $tokenVal);
 		}
+		if (count($tokens)==1) { $tokens = reset($tokens); }
 		$smartyData->assign("MODEL", $tokens);
 		$template = $this->_smarty->createTemplate("string:" . $string, $renderOptions->Get_Key1(), $renderOptions->Get_Key2(), $smartyData);
 		$renderedTemplate	 = $template->fetch();
@@ -119,11 +119,10 @@ class Smarty3 extends ExtensionBase implements \DblEj\Presentation\Integration\I
 	public function Render(ITemplate $template, RenderOptions $renderOptions)
 	{
 		$this->_smarty->setCaching($renderOptions->Get_UseServerSideCache()?\Smarty::CACHING_LIFETIME_SAVED:\Smarty::CACHING_OFF);
-        $this->_smarty->setCacheLifetime($renderOptions->Get_ServerSideCacheTimeout());
+        $this->_smarty->setCacheLifetime($renderOptions->Get_UseServerSideCache()?$renderOptions->Get_ServerSideCacheTimeout():0);
 
 		$smartyData	 = $this->_smarty->createData($this->_smarty);
 		$tokens		 = $renderOptions->GetTokens();
-		if (count($tokens)==1) { $tokens = reset($tokens); }
 
 		foreach ($tokens as $tokenVar=>$tokenVal)
 		{
@@ -139,7 +138,7 @@ class Smarty3 extends ExtensionBase implements \DblEj\Presentation\Integration\I
 		$template			= $this->_smarty->createTemplate($templateFilename, $renderOptions->Get_Key1(), $renderOptions->Get_Key2(), $smartyData);
         try
         {
-            $renderedTemplate	= $template->fetch(null,$renderOptions->Get_Key1());
+            $renderedTemplate	= $template->fetch(null, $renderOptions->Get_Key1());
         }
         catch (\Exception $ex)
         {
