@@ -26,13 +26,13 @@ implements \DblEj\Commerce\Integration\ISellerAggregatorExtension
         }
     }
 
-    public function GetOrders($minLastModified = 0, $limit = 100, $args = [])
+    public function GetOrders($minCreateDate = 0, $minLastModified = 0, $limit = 100, $offset = 0, $serviceArgs = [])
     {
-        $args = ["min_last_modified"=>$minLastModified, "limit"=>$limit];
+        $args = ["min_created"=>$minCreateDate, "min_last_modified"=>$minLastModified, "limit"=>$limit, "offset"=>$offset];
 
-        $includeShippedOrders = isset($args["Shipped Orders"])?$args["Shipped Orders"]:false;
-        $includeTransactions = isset($args["Include Transaction Data"])?$args["Include Transaction Data"]:true;
-        $wasPaid = isset($args["Paid Orders"])?$args["Paid Orders"]:true;
+        $includeShippedOrders = isset($serviceArgs["Shipped Orders"])?$serviceArgs["Shipped Orders"]:false;
+        $includeTransactions = isset($serviceArgs["Include Transaction Data"])?$serviceArgs["Include Transaction Data"]:true;
+        $wasPaid = isset($serviceArgs["Paid Orders"])?$serviceArgs["Paid Orders"]:true;
 
         if (!$includeShippedOrders)
         {
@@ -44,9 +44,102 @@ implements \DblEj\Commerce\Integration\ISellerAggregatorExtension
         }
         $args["was_paid"]=$wasPaid?"true":"false";
 
-        return $this->callApi("shops/$this->_etsyShopName/receipts", $args);
+        $rawOrders = $this->callApi("shops/$this->_etsyShopName/receipts", $args);
+        $orders = [];
+        foreach ($rawOrders["results"] as $rawOrder)
+        {
+            $buyerCountry = $this->GetCountry($rawOrder["country_id"]);
+            $paymentStatus = $rawOrder["was_paid"]?"paid":"unpaid";
+            $paymentMethod = $rawOrder["payment_method"];
+
+            $lineItems = [];
+            foreach ($rawOrder["Transactions"] as $lineItem)
+            {
+                $itemTitle = $lineItem["title"];
+                $description = $lineItem["description"];
+                $shippingCharge = $lineItem["shipping_cost"];
+                $txnId = $lineItem["listing_id"];
+                if (isset($lineItem["product_data"]))
+                {
+                    $itemId = $lineItem["product_data"]["sku"];
+                } else {
+                    $itemId = "etsy-".$lineItem["listing_id"];
+                }
+                $createDate = $lineItem["creation_tsz"];
+                $itemPrice = $lineItem["price"];
+                $itemQty = $lineItem["quantity"];
+
+                $listingImages = $this->GetListingImageUrl($lineItem["listing_id"]);
+                if (isset($listingImages["results"]))
+                {
+                    $listingImages = $listingImages["results"];
+                    if (count($listingImages) > 0)
+                    {
+                        $listingImage = reset($listingImages);
+                    }
+                }
+                $itemImageUrl = $listingImage?$listingImage["url_75x75"]:null;
+                $lineItems[] = new \Wafl\CommonObjects\Commerce\LineItem($txnId, $itemId, $itemQty, $itemPrice, $createDate, $itemTitle, $description, $itemImageUrl, $shippingCharge);
+            }
+
+            if (isset($rawOrder["shipping_tracking_code"]))
+            {
+                $trackingCode = $rawOrder["shipping_tracking_code"];
+                $shipDate = $rawOrder["shipping_notification_date"];
+            }
+            elseif (isset($rawOrder["shipping_details"]["tracking_code"]))
+            {
+                $trackingCode = $rawOrder["shipping_details"]["tracking_code"];
+                $shipDate = isset($rawOrder["shipping_details"]["notification_date"])?$rawOrder["shipping_details"]["notification_date"]:null;
+            }
+            elseif (isset($rawOrder["shipments"]) && count($rawOrder["shipments"]))
+            {
+                $rawShipment = $rawOrder["shipments"][0];
+                $trackingCode = $rawShipment["tracking_code"];
+                $shipDate = $rawShipment["notification_date"];
+
+            } else {
+                $trackingCode = null;
+                $shipDate = null;
+            }
+            $fullName = $rawOrder["name"];
+            if (stristr($fullName, " "))
+            {
+                $shippingFirstName = trim(substr($fullName, 0, stripos($fullName, " ")));
+                $shippingLastName = trim(substr($fullName, stripos($fullName, " ")));
+            } else {
+                $shippingFirstName = $fullName;
+                $shippingLastName = "";
+            }
+            $orders[] = new \Wafl\CommonObjects\Commerce\Order("Etsy.com", $rawOrder["receipt_id"], $rawOrder["creation_tsz"], $rawOrder["buyer_email"], $rawOrder["subtotal"],
+                                                        $rawOrder["grandtotal"], $rawOrder["total_shipping_cost"], $rawOrder["total_tax_cost"], $rawOrder["total_price"],
+                                                        $shippingFirstName, $shippingLastName, $rawOrder["first_line"], $rawOrder["second_line"], $rawOrder["city"], $rawOrder["state"], $buyerCountry, $rawOrder["zip"],
+                                                        $rawOrder["shipping_details"]["shipping_method"], $paymentMethod, $paymentStatus, $lineItems,
+                                                        $rawOrder["message_from_buyer"], $rawOrder["discount_amt"], 0, $rawOrder["last_modified_tsz"], $trackingCode, $shipDate);
+        }
+
+        return $orders;
+    }
+    public function MarkOrderShipped($uid, $trackingId, $shipper)
+    {
+        $args = [];
+        $args["tracking_code"] = $trackingId;
+        $args["carrier_name"] = $shipper;
+        $this->callApi("/shops/$this->_etsyShopName/receipts/$uid/tracking", $args);
     }
 
+    public function VoidOrder($uid, $notes="")
+    {
+        throw new \Wafl\Exceptions\Exception("Cannot void order.  Etsy API does not support voiding orders", E_WARNING, null, "The Etsy API does not currently support voiding orders.  You will need to cancel the order manually at Etsy.com");
+    }
+    public function Refund($uid, $refundAmount, $notes="")
+    {
+        throw new \Wafl\Exceptions\Exception("Cannot issue refund.  Etsy API does not support refunds", E_WARNING, null, "The Etsy API does not currently support refunds.  You will need to do this manually at Etsy.com");
+    }
+    public function AddItemToOrder($uid, $productCode, $addQty, $priceEach)
+    {
+        throw new \Wafl\Exceptions\Exception("Cannot add item.  Etsy API does not support adding items to an order", E_WARNING, null, "The Etsy API does not currently support adding items to existing order.  You will need to handle this manually at Etsy.com");
+    }
     public function GetShippingMethods()
     {
         $methods = [];
@@ -115,7 +208,8 @@ implements \DblEj\Commerce\Integration\ISellerAggregatorExtension
             }
             else if (count($results["results"]) == 1)
             {
-                return reset($results["results"]);
+                $countryInfo = reset($results["results"]);
+                return new \Wafl\CommonObjects\Commerce\Country($countryInfo["name"], $countryInfo["iso_country_code"]);
             } else {
                 throw new \Exception("No etsy country found matching the id: $countryId");
             }
@@ -192,7 +286,12 @@ implements \DblEj\Commerce\Integration\ISellerAggregatorExtension
         }
         if ($useOAuth)
         {
-            self::$_oauthObject->fetch($url, null, OAUTH_HTTP_METHOD_GET);
+            try
+            {
+                self::$_oauthObject->fetch($url, null, OAUTH_HTTP_METHOD_GET);
+            } catch (\Exception $ex) {
+                print_r($ex);
+            }
             $json = self::$_oauthObject->getLastResponse();
         } else {
             $json = \DblEj\Communication\Http\Util::SendRequest($url);
