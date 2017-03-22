@@ -15,7 +15,8 @@ function smarty_block_uiblock($params, $content, $template, &$repeat) {
 
         if (!isset($params["Id"])) {
             $contentIdString = strlen($content)>128?substr($content, 0, 128):$content;
-            $controlInstanceId = $params["name"]."_".md5($contentIdString);
+            $paramUid = implode("", array_keys($params)).implode("", $params).$contentIdString;
+            $controlInstanceId = $params["name"]."_".md5($paramUid);
         } else {
             $controlInstanceId = $params["Id"];
         }
