@@ -26,99 +26,151 @@ implements \DblEj\Commerce\Integration\ISellerAggregatorExtension
         }
     }
 
-    public function GetOrders($minCreateDate = 0, $minLastModified = 0, $limit = 100, $offset = 0, $serviceArgs = [])
+    public function CreateListing($title, $description, $price, $quantity, $imageFiles = [], $category = null, $tags = [], $manufacturer = null, $providerArgs = [])
     {
+        //upload the images
+
+        //find the category id
+
+        //get etsy specific args
+
+        //create the listing
+        $args = [];
+        $args["title"] = $title;
+        $args["quantity"] = $quantity;
+        $args["description"] = $description;
+        $args["price"] = $price;
+        //$args["materials"] = $title;
+        //$args["shipping_template_id"] = $title;
+        //$args["image_ids"] = $title;
+        //$args["category_id"] = $title;
+        $args["tags"] = $tags;
+        $args = array_merge($args, $providerArgs);
+
+        //expected to come as provider args:
+        //$args["who_made"]
+        //$args["is_supply"]
+        //$args["when_made"]
+
+        $this->callApi("shops/$this->_etsyShopName/listings/createListing", $args);
+    }
+
+    public function GetOrder($orderUid, $serviceArgs = [])
+    {
+        $includeTransactions = isset($serviceArgs["Include Transaction Data"])?$serviceArgs["Include Transaction Data"]:true;
+        $args = [];
+        if ($includeTransactions)
+        {
+            $args["includes"]="Country,Transactions:100,Transactions/MainImage";
+        }
+
+        $rawOrder = $this->callApi("receipts/$orderUid", $args);
+        if ($rawOrder && isset($rawOrder["count"]) && $rawOrder["count"] > 0)
+        {
+            return $this->_createOrderFromReceipt($rawOrder["results"][0]);
+        } else {
+            return null;
+        }
+    }
+    public function GetOrders($minCreateDate = 0, $minLastModified = 0, $limit = 50, $offset = 0, $serviceArgs = [])
+    {
+        $minCreateDate = time() - 86400;
+        $minLastModified = time() - 86400;
         $args = ["min_created"=>$minCreateDate, "min_last_modified"=>$minLastModified, "limit"=>$limit, "offset"=>$offset];
 
-        $includeShippedOrders = isset($serviceArgs["Shipped Orders"])?$serviceArgs["Shipped Orders"]:false;
+        $includeShippedOrders = isset($serviceArgs["Shipped Orders"])?$serviceArgs["Shipped Orders"]:null;
         $includeTransactions = isset($serviceArgs["Include Transaction Data"])?$serviceArgs["Include Transaction Data"]:true;
-        $wasPaid = isset($serviceArgs["Paid Orders"])?$serviceArgs["Paid Orders"]:true;
+        $wasPaid = isset($serviceArgs["Paid Orders"])?$serviceArgs["Paid Orders"]:null;
 
-        if (!$includeShippedOrders)
+        if ($includeShippedOrders === true)
         {
+            $args["was_shipped"] = "true";
+        } elseif ($includeShippedOrders === false) {
             $args["was_shipped"] = "false";
         }
         if ($includeTransactions)
         {
-            $args["includes"]="Transactions:100";
+            $args["includes"]="Country,Transactions:100,Transactions/MainImage";
         }
-        $args["was_paid"]=$wasPaid?"true":"false";
+        if ($wasPaid === true)
+        {
+            $args["was_paid"] = "true";
+        } elseif ($wasPaid === false) {
+            $args["was_paid"] = "false";
+        }
 
         $rawOrders = $this->callApi("shops/$this->_etsyShopName/receipts", $args);
         $orders = [];
+        $listingImageUrls = [];
         foreach ($rawOrders["results"] as $rawOrder)
         {
-            $buyerCountry = $this->GetCountry($rawOrder["country_id"]);
-            $paymentStatus = $rawOrder["was_paid"]?"paid":"unpaid";
-            $paymentMethod = $rawOrder["payment_method"];
-
-            $lineItems = [];
-            foreach ($rawOrder["Transactions"] as $lineItem)
-            {
-                $itemTitle = $lineItem["title"];
-                $description = $lineItem["description"];
-                $shippingCharge = $lineItem["shipping_cost"];
-                $txnId = $lineItem["listing_id"];
-                if (isset($lineItem["product_data"]))
-                {
-                    $itemId = $lineItem["product_data"]["sku"];
-                } else {
-                    $itemId = "etsy-".$lineItem["listing_id"];
-                }
-                $createDate = $lineItem["creation_tsz"];
-                $itemPrice = $lineItem["price"];
-                $itemQty = $lineItem["quantity"];
-
-                $listingImages = $this->GetListingImageUrl($lineItem["listing_id"]);
-                if (isset($listingImages["results"]))
-                {
-                    $listingImages = $listingImages["results"];
-                    if (count($listingImages) > 0)
-                    {
-                        $listingImage = reset($listingImages);
-                    }
-                }
-                $itemImageUrl = $listingImage?$listingImage["url_75x75"]:null;
-                $lineItems[] = new \Wafl\CommonObjects\Commerce\LineItem($txnId, $itemId, $itemQty, $itemPrice, $createDate, $itemTitle, $description, $itemImageUrl, $shippingCharge);
-            }
-
-            if (isset($rawOrder["shipping_tracking_code"]))
-            {
-                $trackingCode = $rawOrder["shipping_tracking_code"];
-                $shipDate = $rawOrder["shipping_notification_date"];
-            }
-            elseif (isset($rawOrder["shipping_details"]["tracking_code"]))
-            {
-                $trackingCode = $rawOrder["shipping_details"]["tracking_code"];
-                $shipDate = isset($rawOrder["shipping_details"]["notification_date"])?$rawOrder["shipping_details"]["notification_date"]:null;
-            }
-            elseif (isset($rawOrder["shipments"]) && count($rawOrder["shipments"]))
-            {
-                $rawShipment = $rawOrder["shipments"][0];
-                $trackingCode = $rawShipment["tracking_code"];
-                $shipDate = $rawShipment["notification_date"];
-
-            } else {
-                $trackingCode = null;
-                $shipDate = null;
-            }
-            $fullName = $rawOrder["name"];
-            if (stristr($fullName, " "))
-            {
-                $shippingFirstName = trim(substr($fullName, 0, stripos($fullName, " ")));
-                $shippingLastName = trim(substr($fullName, stripos($fullName, " ")));
-            } else {
-                $shippingFirstName = $fullName;
-                $shippingLastName = "";
-            }
-            $orders[] = new \Wafl\CommonObjects\Commerce\Order("Etsy.com", $rawOrder["receipt_id"], $rawOrder["creation_tsz"], $rawOrder["buyer_email"], $rawOrder["subtotal"],
-                                                        $rawOrder["grandtotal"], $rawOrder["total_shipping_cost"], $rawOrder["total_tax_cost"], $rawOrder["total_price"],
-                                                        $shippingFirstName, $shippingLastName, $rawOrder["first_line"], $rawOrder["second_line"], $rawOrder["city"], $rawOrder["state"], $buyerCountry, $rawOrder["zip"],
-                                                        $rawOrder["shipping_details"]["shipping_method"], $paymentMethod, $paymentStatus, $lineItems,
-                                                        $rawOrder["message_from_buyer"], $rawOrder["discount_amt"], 0, $rawOrder["last_modified_tsz"], $trackingCode, $shipDate);
+            $orders[] = $this->_createOrderFromReceipt($rawOrder);
         }
 
         return $orders;
+    }
+
+    private function _createOrderFromReceipt($rawOrder)
+    {
+        $buyerCountry = new \Wafl\CommonObjects\Commerce\Country($rawOrder["Country"]["name"], $rawOrder["Country"]["iso_country_code"]);
+        $paymentStatus = $rawOrder["was_paid"]?"paid":"unpaid";
+        $paymentMethod = $rawOrder["payment_method"];
+
+        $lineItems = [];
+        foreach ($rawOrder["Transactions"] as $lineItem)
+        {
+            $itemTitle = $lineItem["title"];
+            $description = $lineItem["description"];
+            $shippingCharge = $lineItem["shipping_cost"];
+            $txnId = $lineItem["listing_id"];
+            if (isset($lineItem["product_data"]) && isset($lineItem["product_data"]["sku"])&& $lineItem["product_data"]["sku"])
+            {
+                $itemId = $lineItem["product_data"]["sku"];
+            } else {
+                $itemId = "etsy-".$lineItem["listing_id"];
+            }
+            $createDate = $lineItem["creation_tsz"];
+            $itemPrice = $lineItem["price"];
+            $itemQty = $lineItem["quantity"];
+
+            $itemImageUrl = $lineItem["MainImage"]?$lineItem["MainImage"]["url_75x75"]:null;
+            $lineItems[] = new \Wafl\CommonObjects\Commerce\LineItem($txnId, $itemId, $itemQty, $itemPrice, $createDate, $itemTitle, $description, $itemImageUrl, $shippingCharge);
+        }
+
+        if (isset($rawOrder["shipping_tracking_code"]))
+        {
+            $trackingCode = $rawOrder["shipping_tracking_code"];
+            $shipDate = $rawOrder["shipping_notification_date"];
+        }
+        elseif (isset($rawOrder["shipping_details"]["tracking_code"]))
+        {
+            $trackingCode = $rawOrder["shipping_details"]["tracking_code"];
+            $shipDate = isset($rawOrder["shipping_details"]["notification_date"])?$rawOrder["shipping_details"]["notification_date"]:null;
+        }
+        elseif (isset($rawOrder["shipments"]) && count($rawOrder["shipments"]))
+        {
+            $rawShipment = $rawOrder["shipments"][0];
+            $trackingCode = $rawShipment["tracking_code"];
+            $shipDate = $rawShipment["notification_date"];
+
+        } else {
+            $trackingCode = null;
+            $shipDate = null;
+        }
+        $fullName = $rawOrder["name"];
+        if (stristr($fullName, " "))
+        {
+            $shippingFirstName = trim(substr($fullName, 0, stripos($fullName, " ")));
+            $shippingLastName = trim(substr($fullName, stripos($fullName, " ")));
+        } else {
+            $shippingFirstName = $fullName;
+            $shippingLastName = "";
+        }
+        return new \Wafl\CommonObjects\Commerce\Order("Etsy.com", $rawOrder["receipt_id"], $rawOrder["creation_tsz"], $rawOrder["buyer_email"], $rawOrder["subtotal"],
+                                                    $rawOrder["grandtotal"], $rawOrder["total_shipping_cost"], $rawOrder["total_tax_cost"], $rawOrder["total_price"],
+                                                    $shippingFirstName, $shippingLastName, $rawOrder["first_line"], $rawOrder["second_line"], $rawOrder["city"], $rawOrder["state"], $buyerCountry, $rawOrder["zip"],
+                                                    $rawOrder["shipping_details"]["shipping_method"], $paymentMethod, $paymentStatus, $lineItems,
+                                                    $rawOrder["message_from_buyer"], $rawOrder["discount_amt"], 0, $rawOrder["last_modified_tsz"], $trackingCode, $shipDate);
     }
     public function MarkOrderShipped($uid, $trackingId, $shipper)
     {
@@ -289,14 +341,25 @@ implements \DblEj\Commerce\Integration\ISellerAggregatorExtension
             try
             {
                 self::$_oauthObject->fetch($url, null, OAUTH_HTTP_METHOD_GET);
-            } catch (\Exception $ex) {
-                print_r($ex);
+            }
+            catch (\OAuthException $ex)
+            {
+                throw new \Exception("Error calling the Etsy API: ".$ex->getMessage());
+            }
+            catch (\Exception $ex)
+            {
+                throw new \Exception("Error calling the Etsy API: ".$ex->getMessage());
             }
             $json = self::$_oauthObject->getLastResponse();
         } else {
             $json = \DblEj\Communication\Http\Util::SendRequest($url);
         }
-        $response = \DblEj\Communication\JsonUtil::DecodeJson($json);
+        try
+        {
+            $response = \DblEj\Communication\JsonUtil::DecodeJson($json);
+        } catch (\Exception $ex) {
+            throw new \Exception("There was an error parsing the response from etsy: $json");
+        }
         return $response;
     }
 
