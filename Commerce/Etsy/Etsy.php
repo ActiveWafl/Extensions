@@ -26,6 +26,20 @@ implements \DblEj\Commerce\Integration\ISellerAggregatorExtension
         }
     }
 
+    public function FindListings($titleSearch)
+    {
+        //this was thrown together quickly, only checking active listings
+        $args = ["include_private"=>true, "keywords"=>$titleSearch];
+        $apiResult = $this->callApi("shops/$this->_etsyShopName/listings/active", $args);
+
+        if (isset($apiResult["results"]))
+        {
+            return $apiResult["results"];
+        } else {
+            return null;
+        }
+    }
+
     public function CreateListing($title, $description, $price, $quantity, $imageFiles = [], $category = null, $tags = [], $manufacturer = null, $providerArgs = [])
     {
         //upload the images
@@ -74,14 +88,17 @@ implements \DblEj\Commerce\Integration\ISellerAggregatorExtension
     }
     public function GetOrders($minCreateDate = 0, $minLastModified = 0, $limit = 50, $offset = 0, $serviceArgs = [])
     {
-        $minCreateDate = time() - 86400;
-        $minLastModified = time() - 86400;
         $args = ["min_created"=>$minCreateDate, "min_last_modified"=>$minLastModified, "limit"=>$limit, "offset"=>$offset];
 
         $includeShippedOrders = isset($serviceArgs["Shipped Orders"])?$serviceArgs["Shipped Orders"]:null;
         $includeTransactions = isset($serviceArgs["Include Transaction Data"])?$serviceArgs["Include Transaction Data"]:true;
         $wasPaid = isset($serviceArgs["Paid Orders"])?$serviceArgs["Paid Orders"]:null;
+        $maxCreate = isset($serviceArgs["Max Create Date"])?$serviceArgs["Max Create Date"]:null;
 
+        if ($maxCreate)
+        {
+            $args["max_created"] = $maxCreate;
+        }
         if ($includeShippedOrders === true)
         {
             $args["was_shipped"] = "true";
@@ -172,12 +189,24 @@ implements \DblEj\Commerce\Integration\ISellerAggregatorExtension
                                                     $rawOrder["shipping_details"]["shipping_method"], $paymentMethod, $paymentStatus, $lineItems,
                                                     $rawOrder["message_from_buyer"], $rawOrder["discount_amt"], 0, $rawOrder["last_modified_tsz"], $trackingCode, $shipDate);
     }
-    public function MarkOrderShipped($uid, $trackingId, $shipper)
+
+    public function AddShipment($uid, $trackingId, $shipper)
     {
         $args = [];
         $args["tracking_code"] = $trackingId;
         $args["carrier_name"] = $shipper;
-        $this->callApi("/shops/$this->_etsyShopName/receipts/$uid/tracking", $args);
+        $this->callApi("shops/$this->_etsyShopName/receipts/$uid/tracking", $args, true, \OAUTH_HTTP_METHOD_POST);
+    }
+
+    public function MarkOrderShipped($uid, $trackingId = null, $shipper = null)
+    {
+        if ($trackingId && $shipper)
+        {
+            $this->AddShipment($uid, $trackingId, $shipper);
+        }
+        $args = [];
+        $args["was_shipped"] = true;
+        $this->callApi("receipts/$uid", $args, true, \OAUTH_HTTP_METHOD_PUT);
     }
 
     public function VoidOrder($uid, $notes="")
@@ -310,7 +339,7 @@ implements \DblEj\Commerce\Integration\ISellerAggregatorExtension
 
     private static $_oauthObject = null;
 
-    private function callApi($uri, $parameters = [], $useOAuth = true)
+    private function callApi($uri, $parameters = [], $useOAuth = true, $httpMethod = OAUTH_HTTP_METHOD_GET)
     {
         $currentTime = microtime(true);
         if (($currentTime - self::$_throttleRequestBlockSecond) < 1)
@@ -340,7 +369,7 @@ implements \DblEj\Commerce\Integration\ISellerAggregatorExtension
         {
             try
             {
-                self::$_oauthObject->fetch($url, null, OAUTH_HTTP_METHOD_GET);
+                self::$_oauthObject->fetch($url, null, $httpMethod);
             }
             catch (\OAuthException $ex)
             {
