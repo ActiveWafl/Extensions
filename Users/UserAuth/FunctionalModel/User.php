@@ -222,8 +222,11 @@ abstract class User extends \Wafl\Extensions\Users\UserAuth\DataModel\User {
 
         $app = \Wafl\Core::$RUNNING_APPLICATION;
         $session = $app->GetCurrentSession();
-        $session->Set_UserId($user->Get_UserId());
-        $session->Save();
+        if (!$session->Get_UserId() && $user->Get_UserId())
+        {
+            $session->Set_UserId($user->Get_UserId());
+            $session->Save();
+        }
 
         return $session;
     }
