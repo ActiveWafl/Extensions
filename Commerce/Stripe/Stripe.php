@@ -880,7 +880,7 @@ implements \DblEj\Commerce\Integration\IPaymentGatewayExtension
             $saveResult = new \DblEj\Integration\Ecommerce\SaveCardResult("", $ex->getMessage()." ".$ex->getTraceAsString(), "Error saving card", "There was an error while saving the card. This error might be temporary. Please try again.");
         } catch (\Stripe\Error\Base $ex) {
             $saveResult = new \DblEj\Integration\Ecommerce\SaveCardResult("", $ex->getMessage()." ".$ex->getTraceAsString(), "Error saving card", "There was an error while saving the card.");
-        } catch (Exception $ex) {
+        } catch (\Exception $ex) {
             $saveResult = new \DblEj\Integration\Ecommerce\SaveCardResult("", $ex->getMessage()." ".$ex->getTraceAsString(), "Error saving card", "There was an error while saving the card.");
         }
         return $saveResult;
