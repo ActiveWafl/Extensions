@@ -19,7 +19,7 @@ class Ups implements \DblEj\Commerce\Integration\IShipperExtension {
      * @param string $trackingid
      * @return ShipmentStatus
      */
-    function GetShipmentStatus($trackingNumber)
+    function GetShipmentStatus($trackingNumber, $carrier = null, $shipDate = null, $disambiguate = false)
     {
          $wsdl = __DIR__."/Ups/Track.wsdl";
          $operation = "ProcessTrack";
@@ -130,9 +130,9 @@ class Ups implements \DblEj\Commerce\Integration\IShipperExtension {
          }
     }
 
-    function GetShippingCost(
-        $service, $sourceAddress = null, $sourceCity = null, $sourceStateOrRegion = null, $sourceCountry = null, $sourcePostalCode = null,
-        $destAddress = null, $destCity = null, $destStateOrRegion = null, $destCountry = null, $destPostalCode = null,
+    public function GetShippingCost(
+        $service, $sourceName, $sourceCompany = null, $sourceAddress = null, $sourceCity = null, $sourceStateOrRegion = null, $sourceCountry = null, $sourcePostalCode = null,
+        $sourcePhone = null, $sourceEmail = null, $destName = null, $destAddress = null, $destCity = null, $destStateOrRegion = null, $destCountry = null, $destPostalCode = null, $destPhone = null, $destEmail = null,
         $packageType = null, $packageQualifier = null, $weight = null, $packageWidth = null, $packageHeight = null, $packageLength = null, $packageGirth = null,
         $valueOfContents = null, $tracking = false, $insuranceAmount = null, $codAmount = null, $contentsType = null, $serviceFlags = []
     )
@@ -140,7 +140,7 @@ class Ups implements \DblEj\Commerce\Integration\IShipperExtension {
         return 0;
     }
 
-    function GetServiceNames()
+    function GetServiceNames($carrierName = NULL)
     {
         return [];
     }
@@ -261,6 +261,29 @@ class Ups implements \DblEj\Commerce\Integration\IShipperExtension {
     public static function TranslateUrl(\DblEj\Communication\Http\Request $request)
     {
 
+    }
+
+
+    public function CreateShipment($service, $sourceName, $sourceCompany = null, $sourceAddress = null, $sourceCity = null, $sourceStateOrRegion = null, $sourceCountry = null, $sourcePostalCode = null,
+        $sourcePhone = null, $sourceEmail = null, $destName = null, $destAddress = null, $destCity = null, $destStateOrRegion = null, $destCountry = null, $destPostalCode = null, $destPhone = null, $destEmail = null,
+        $packageType = null, $packageQualifier = null, $weight = null, $packageWidth = null, $packageHeight = null, $packageLength = null, $packageGirth = null,
+        $valueOfContents = null, $tracking = false, $insuranceAmount = null, $codAmount = null, $contentsType = null, $serviceFlags = [])
+    {
+
+    }
+
+    public function GetShipmentLabels($shipmentUid)
+    {
+
+    }
+
+    public function GetCarrierNames()
+    {
+        return ["ups"];
+    }
+   public function GetCarriers()
+    {
+        return ["ups"=>"UPS"];
     }
 }
 ?>
