@@ -46,7 +46,7 @@ implements \DblEj\Commerce\Integration\IShipperExtension, \DblEj\Commerce\Integr
      * @param string $trackingid
      * @return ShipmentStatus
      */
-    function GetShipmentStatus($trackingNumber, $mailDate = null, $disambiguate = false)
+    function GetShipmentStatus($carrierName, $trackingNumber, $mailDate = null, $disambiguate = false)
     {
         $localIP = getHostByName(getHostName());
         $apiEndpoint = "http://production.shippingapis.com/ShippingAPI.dll?API=TrackV2";
@@ -84,7 +84,7 @@ implements \DblEj\Commerce\Integration\IShipperExtension, \DblEj\Commerce\Integr
             {
                 if ($resultXml->TrackInfo->Error->Description[0] == "Duplicate" && $mailDate && !$disambiguate)
                 {
-                    return $this->GetShipmentStatus($trackingNumber, $mailDate, true);
+                    return $this->GetShipmentStatus($trackingNumber, $carrierName, $mailDate, true);
                 } else {
                     return ["Status"=>"CantTrack", "StatusDescription"=>$resultXml->TrackInfo->Error->Description[0], "DeliveryDate"=>"N/A", "Summary"=>"The shipment cannot be tracked.","Events"=>[]];
                 }
@@ -93,7 +93,7 @@ implements \DblEj\Commerce\Integration\IShipperExtension, \DblEj\Commerce\Integr
             {
                 if ($resultXml->Error->Description[0] == "Duplicate"  && $mailDate && !$disambiguate)
                 {
-                    return $this->GetShipmentStatus($trackingNumber, $mailDate, true);
+                    return $this->GetShipmentStatus($trackingNumber, $carrierName, $mailDate, true);
                 } else {
                     return ["Status"=>"CantTrack", "StatusDescription"=>$resultXml->Error->Description[0], "DeliveryDate"=>"N/A", "Summary"=>"The shipment cannot be tracked.","Events"=>[]];
                 }
@@ -293,8 +293,11 @@ implements \DblEj\Commerce\Integration\IShipperExtension, \DblEj\Commerce\Integr
         }
         return $returnValue;
     }
-
-    function GetServiceNames()
+    function GetCarrierNames()
+    {
+        return ["USPS"=>"USPS"];
+    }
+    function GetServiceNames($carrierName = null)
     {
         return  [
                     "FIRST CLASS"=>"First Class",
@@ -463,10 +466,9 @@ implements \DblEj\Commerce\Integration\IShipperExtension, \DblEj\Commerce\Integr
         }
         return $flags;
     }
-
-    function GetShippingCost(
-        $service, $sourceAddress = null, $sourceCity = null, $sourceStateOrRegion = null, $sourceCountry = null, $sourcePostalCode = null,
-        $destAddress = null, $destCity = null, $destStateOrRegion = null, $destCountry = null, $destPostalCode = null,
+    public function GetShippingCost(
+        $service, $sourceName, $sourceAddress = null, $sourceCity = null, $sourceStateOrRegion = null, $sourceCountry = null, $sourcePostalCode = null,
+        $sourcePhone = null, $sourceEmail = null, $destName = null, $destAddress = null, $destCity = null, $destStateOrRegion = null, $destCountry = null, $destPostalCode = null, $destPhone = null, $destEmail = null,
         $packageType = null, $packageQualifier = null, $weight = null, $packageWidth = null, $packageHeight = null, $packageLength = null, $packageGirth = null,
         $valueOfContents = null, $tracking = false, $insuranceAmount = null, $codAmount = null, $contentsType = null, $serviceFlags = []
     )
@@ -519,7 +521,7 @@ implements \DblEj\Commerce\Integration\IShipperExtension, \DblEj\Commerce\Integr
 
             $machinable = isset($serviceFlags["MACHINABLE"])?$serviceFlags["MACHINABLE"]:true;
             $machinable = $machinable?"True":"False";
-            if (\DblEj\Util\Strings::StartsWith(strtolower($destCountry),"united states"))
+            if (\DblEj\Util\Strings::StartsWith(strtolower($destCountry),"united states") || $destCountry == "US")
             {
                 if ($service == "FIRST CLASS" || $service == "FIRST CLASS COMMERCIAL" || $service == "FIRST CLASS HFP COMMERCIAL")
                 {
@@ -583,10 +585,9 @@ implements \DblEj\Commerce\Integration\IShipperExtension, \DblEj\Commerce\Integr
             $result = \DblEj\Communication\Http\Util::SendRequest($url);
             if ($result)
             {
-                $resultXml = simplexml_load_string($result);
                 if ($resultXml && isset($resultXml->Package))
                 {
-                    if (\DblEj\Util\Strings::StartsWith(strtolower($destCountry),"united states"))
+                    if (\DblEj\Util\Strings::StartsWith(strtolower($destCountry),"united states") || $destCountry == "US")
                     {
                         if (isset($resultXml->Package->Error))
                         {
@@ -670,6 +671,19 @@ implements \DblEj\Commerce\Integration\IShipperExtension, \DblEj\Commerce\Integr
             throw new \Exception("No response from USPS");
         }
         return ["City"=>$city, "State"=>$state];
+    }
+
+
+    public function CreateShipment($service, $sourceName, $sourceCompany = null, $sourceAddress = null, $sourceCity = null, $sourceStateOrRegion = null, $sourceCountry = null, $sourcePostalCode = null,
+        $sourcePhone = null, $sourceEmail = null, $destName = null, $destAddress = null, $destCity = null, $destStateOrRegion = null, $destCountry = null, $destPostalCode = null, $destPhone = null, $destEmail = null,
+        $packageType = null, $packageQualifier = null, $weight = null, $packageWidth = null, $packageHeight = null, $packageLength = null, $packageGirth = null,
+        $valueOfContents = null, $tracking = false, $insuranceAmount = null, $codAmount = null, $contentsType = null, $serviceFlags = [])
+    {
+    }
+
+    public function GetShipmentLabels($shipmentUid)
+    {
+
     }
 }
 ?>
