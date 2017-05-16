@@ -192,6 +192,7 @@ implements \DblEj\Commerce\Integration\ISellerAggregatorExtension
 
     public function AddShipment($uid, $trackingId, $shipper)
     {
+        $shipper = str_replace(" ", "-", $shipper);
         $args = [];
         $args["tracking_code"] = $trackingId;
         $args["carrier_name"] = $shipper;
@@ -373,11 +374,11 @@ implements \DblEj\Commerce\Integration\ISellerAggregatorExtension
             }
             catch (\OAuthException $ex)
             {
-                throw new \Exception("Error calling the Etsy API: ".$ex->getMessage());
+                throw new \Exception("Error calling the Etsy API ($url): ".$ex->getMessage());
             }
             catch (\Exception $ex)
             {
-                throw new \Exception("Error calling the Etsy API: ".$ex->getMessage());
+                throw new \Exception("Error calling the Etsy API ($url): ".$ex->getMessage());
             }
             $json = self::$_oauthObject->getLastResponse();
         } else {

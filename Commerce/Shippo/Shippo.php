@@ -885,21 +885,33 @@ implements \DblEj\Commerce\Integration\IShipperExtension
 
     private function _createShipment($service, $packageType, $packageLength, $packageWidth, $packageHeight, $weight, $customerAccountNumber, $sourceName, $sourceCompany, $sourceAddress, $sourceCity, $sourceStateOrRegion, $sourcePostalCode, $sourceCountry, $sourcePhone, $sourceEmail, $destName, $destAddress, $destCity, $destStateOrRegion, $destPostalCode, $destCountry, $destPhone, $destEmail, $valueOfContents)
     {
-        if (strlen($destAddress) > 50)
+        if (strlen($destAddress) > 44)
         {
-            $destAddressLine1 = substr($destAddress, 0, 50);
-            $destAddressLine2 = substr($destAddress, 50, 50);
+            $destAddressLine1 = substr($destAddress, 0, 44); //labels were being cutoff when we did fifty so we reduced it to 44
+            $destAddressLine2 = substr($destAddress, 44, 50);
         } else {
             $destAddressLine1 = $destAddress;
             $destAddressLine2 = null;
         }
-        if (strlen($sourceAddress) > 50)
+        if (strlen($sourceAddress) > 44)
         {
-            $srcAddressLine1 = substr($sourceAddress, 0, 50);
-            $srcAddressLine2 = substr($sourceAddress, 50, 50);
+            $srcAddressLine1 = substr($sourceAddress, 0, 44); //labels were being cutoff when we did fifty so we reduced it to 44
+            $srcAddressLine2 = substr($sourceAddress, 44, 50);
         } else {
             $srcAddressLine1 = $sourceAddress;
             $srcAddressLine2 = null;
+        }
+        if (strlen($sourceName) > 30)
+        {
+            $sourceName = substr($sourceName, 0, 30);
+        }
+        if (strlen($sourceCompany) > 30)
+        {
+            $sourceCompany = substr($sourceCompany, 0, 30);
+        }
+        if (strlen($destName) > 30)
+        {
+            $destName = substr($destName, 0, 30);
         }
 
         $shipmentObject =

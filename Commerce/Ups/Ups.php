@@ -269,8 +269,8 @@ class Ups implements \DblEj\Commerce\Integration\IShipperExtension {
         $packageType = null, $packageQualifier = null, $weight = null, $packageWidth = null, $packageHeight = null, $packageLength = null, $packageGirth = null,
         $valueOfContents = null, $tracking = false, $insuranceAmount = null, $codAmount = null, $contentsType = null, $serviceFlags = [])
     {
-
     }
+
 
     public function GetShipmentLabels($shipmentUid)
     {
