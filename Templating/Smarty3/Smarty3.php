@@ -47,18 +47,6 @@ class Smarty3 extends ExtensionBase implements \DblEj\Presentation\Integration\I
 		$this->_smarty->force_compile	= $this->_forceCompile;
 		$this->_smarty->error_reporting = $this->_errorReporting;
         $this->_smarty->inheritance_merge_compiled_includes = false;
-
-		Template::SetTemplateEngine($this);
-
-        $localExtensionsFolder = realpath($app->Get_Settings()->Get_Paths()->Get_Wafl()->Get_ExtensionsFolder());
-        $localControlsFolder = realpath($app->Get_Settings()->Get_Paths()->Get_Wafl()->Get_ControlsFolder());
-		$this->AddTemplateFolder($localExtensionsFolder,200);
-		$this->AddTemplateFolder($localControlsFolder,300);
-		if (defined("AM_SETUP") && AM_SETUP)
-		{
-			$this->AddTemplateFolder(Core::$LOCAL_TEMPLATE_FOLDER,150);
-		}
-
         $this->_smarty->autoload_filters = array('pre' => array('attribute_values', 'repeater','display_condition','repeater_docs','display_condition_docs'));
 	}
 

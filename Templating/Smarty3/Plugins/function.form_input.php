@@ -5,12 +5,13 @@ function smarty_function_form_input($params, $template)
 	$propertyName		 = isset($params["field_name"])?$params["field_name"]:$params["label"];
 	$propertyValue		 = $params["field_value"];
 	$required			 = isset($params["required"]) ? $params["required"] : false;
+	$autofocus           = isset($params["autofocus"]) ? $params["autofocus"] : false;
 	$readOnly			 = isset($params["readonly"]) ? $params["readonly"] : false;
 	$disabled			 = isset($params["disabled"]) ? $params["disabled"] : false;
 	$elementId			 = isset($params["id"]) ? $params["id"] : $propertyName;
     $placeholder         = isset($params["placeholder"]) ? $params["placeholder"] : "";
-    $inline             = isset($params["inline"]) ? $params["inline"] : false;
-
+    $inline              = isset($params["inline"]) ? $params["inline"] : false;
+    $showDropdownLabel   = isset($params["show_dropdown_label"]) ? $params["show_dropdown_label"] : false;
 	$labelElemArgs	 = "";
 	$inputElemArgs	 = "";
 	foreach ($params as $param => $paramVal)
@@ -49,6 +50,7 @@ function smarty_function_form_input($params, $template)
 		$validatorHtml = "";
 	}
 	$requiredAttribute	 = $required ? "required " : "";
+    $autofocusAttribute  = $autofocus? "autofocus" : "";
 	$readOnlyAttribute	 = $readOnly ? "readonly " : "";
     $disabledAttribute   = $disabled ? "disabled " : "";
     $checkedAttribute    = $propertyValue ? "checked" : "";
@@ -63,7 +65,7 @@ function smarty_function_form_input($params, $template)
     $escapedValue = htmlentities($propertyValue, ENT_COMPAT|ENT_HTML5);
 	if ($inputType == "text")
 	{
-        $returnString .= "<input type=\"$inputType\" name=\"$propertyName\" placeholder=\"$placeholder\" id=\"$elementId\" value=\"$escapedValue\" {$inputElemArgs}{$requiredAttribute}{$readOnlyAttribute}{$disabledAttribute}/>";
+        $returnString .= "<input type=\"$inputType\" name=\"$propertyName\" placeholder=\"$placeholder\" id=\"$elementId\" value=\"$escapedValue\" {$inputElemArgs}{$requiredAttribute}{$autofocusAttribute}{$readOnlyAttribute}{$disabledAttribute}/>";
 	}
 	elseif ($inputType == "checkbox")
 	{
@@ -71,7 +73,7 @@ function smarty_function_form_input($params, $template)
 	}
 	elseif ($inputType == "textarea")
 	{
-		$returnString .= "<textarea name=\"$propertyName\" id=\"$elementId\" placeholder=\"$placeholder\" {$inputElemArgs}{$requiredAttribute}{$readOnlyAttribute}{$disabledAttribute}>$propertyValue</textarea>";
+		$returnString .= "<textarea name=\"$propertyName\" id=\"$elementId\" placeholder=\"$placeholder\" {$inputElemArgs}{$requiredAttribute}{$autofocusAttribute}{$readOnlyAttribute}{$disabledAttribute}>$propertyValue</textarea>";
 	}
 	elseif ($inputType == "select")
 	{
@@ -89,7 +91,12 @@ function smarty_function_form_input($params, $template)
             $pronoun = "a";
         }
 
-        $optionHtml="<option value=''>Choose $pronoun $label from the list</option>";
+        if ($showDropdownLabel)
+        {
+            $optionHtml="<option value=''>Choose $pronoun $label from the list</option>";
+        } else {
+            $optionHtml="<option value=''></option>";
+        }
         $options = isset($params["OptionList"])?$params["OptionList"]:array();
         foreach ($options as $optionVal=>$optionName)
         {

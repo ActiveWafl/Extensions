@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project name="Smarty3 Wafl Extension" default="Build">
     <property name="ExtensionName" value="Smarty3"/>
-    <property name="ExtensionVersion" value="0.0.4" />
+    <property name="ExtensionVersion" value="0.0.7" />
     
     <condition property="is_windows">
         <os family="windows" />
