@@ -192,6 +192,7 @@ implements \DblEj\Commerce\Integration\ISellerAggregatorExtension
 
     public function AddShipment($uid, $trackingId, $shipper)
     {
+        $trackingId = preg_replace("/\\s/", "", $trackingId);
         $shipper = str_replace(" ", "-", $shipper);
         $args = [];
         $args["tracking_code"] = $trackingId;
