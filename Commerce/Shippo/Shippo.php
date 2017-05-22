@@ -815,7 +815,7 @@ implements \DblEj\Commerce\Integration\IShipperExtension
                     {
                         $errorMessages[] = $msg["source"].": ".$msg["text"];
                     }
-                    throw new \Wafl\Exceptions\Exception("Error getting shipping charges. ".  implode(". ", $errorMessages), E_WARNING, null, "There was an error while trying to retrive the shipper's rate for this shipment.".  implode(". ", $errorMessages));
+                    throw new \Wafl\Exceptions\Exception("Error getting shipping charges. ".  implode(". ", $errorMessages), E_WARNING, null, "There was an error while trying to retrieve the shipper's rate for this shipment.".  implode(". ", $errorMessages));
                 } else {
                     throw new \Wafl\Exceptions\Exception("Rate service level not found in Shippo response.", E_WARNING, null, "The specified shipping service is not available for this shipment with this packaging (or the cloud service is not available)");
                 }
@@ -1065,7 +1065,7 @@ implements \DblEj\Commerce\Integration\IShipperExtension
                     //4 = weight
                     //5 = origin country
                     //this is temporary pending a good functioniong standard interface for line items
-                    $testCustomsItem = ["description"=>$lineItem[3], "quantity"=>  floatval($lineItem[1]), "net_weight"=>round($lineItem[4]*$lineItem[1], 3), "mass_unit"=>"oz", "value_amount"=>round($lineItem[2]*$lineItem[1], 3), "value_currency"=>"USD", "origin_country"=>$lineItem[5], "sku_code"=>$lineItem[0]];
+                    $testCustomsItem = ["description"=>substr($lineItem[3], 0, 49), "quantity"=>  floatval($lineItem[1]), "net_weight"=>round($lineItem[4]*$lineItem[1], 3), "mass_unit"=>"oz", "value_amount"=>round($lineItem[2]*$lineItem[1], 3), "value_currency"=>"USD", "origin_country"=>$lineItem[5], "sku_code"=>$lineItem[0]];
                     $testCustomItemResponse = $this->callApi("customs/items", $testCustomsItem, \DblEj\Communication\Http\Request::HTTP_POST, true);
                     $shippoItemIds[] = $testCustomItemResponse["object_id"];
                 }
@@ -1073,7 +1073,6 @@ implements \DblEj\Commerce\Integration\IShipperExtension
 
             $testCustomsDeclaration = $serviceFlags;
             $testCustomsDeclaration["items"] = $shippoItemIds;
-            $testCustomsDeclaration["invoice"] = "test123";
             $testCustomsResponse = $this->callApi("customs/declarations", $testCustomsDeclaration, \DblEj\Communication\Http\Request::HTTP_POST, true);
         }
         if ($lineItems && !isset($testCustomsResponse["object_id"]))
