@@ -172,6 +172,7 @@ implements \DblEj\Commerce\Integration\IShipperExtension
         {
             throw new \Exception("Shippo requires the carrier name when checking shipment status");
         }
+        $trackingid = preg_replace("/\\s/", "", $trackingid);
         $uri = "tracks/$carrierName/$trackingid";
         $shipInfo = $this->callApi($uri);
         $events = [];
@@ -786,7 +787,7 @@ implements \DblEj\Commerce\Integration\IShipperExtension
         if ($weight > 0)
         {
             $shipmentObject = $this->_createShipment($service, $packageType, $packageLength, $packageWidth, $packageHeight, $weight, $customerAccountNumber, $sourceName, $sourceCompany, $sourceAddress, $sourceCity, $sourceStateOrRegion, $sourcePostalCode, $sourceCountry, $sourcePhone, $sourceEmail, $destName, $destAddress, $destCity, $destStateOrRegion, $destPostalCode, $destCountry, $destPhone, $destEmail, $valueOfContents);
-            $shipmentObject["address_to"]["phone"]="16025551213";
+            $shipmentObject["address_to"]["phone"] = $destPhone;
             if ($testCustomsId)
             {
                 $shipmentObject["customs_declaration"] = $testCustomsId;
