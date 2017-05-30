@@ -251,7 +251,7 @@ implements \DblEj\Commerce\Integration\IShipperExtension
                         "dhl_ecommerce_globalmail_business_isal"=>"GlobalMail Business ISAL",
                         "dhl_ecommerce_parcel_plus_expedited_max"=>"Parcel Plus Expedited Max",
                         "dhl_ecommerce_globalmail_packet_plus"=>"GlobalMail Packet Plus",
-                        "dhl_ecommerce_parcels_ground"=>"Parcels Ground Expedited",
+                        "dhl_ecommerce_parcels_ground"=>"Parcels Ground",
                         "dhl_ecommerce_expedited"=>"Expedited",
                         "dhl_ecommerce_parcel_plus_ground"=>"Parcel Plus Ground",
                         "dhl_ecommerce_parcel_international_standard"=>"Parcel International Standard",
@@ -1160,7 +1160,7 @@ implements \DblEj\Commerce\Integration\IShipperExtension
                 $trackingId = $shipmentResponse["tracking_number"];
                 $postage = $rate["amount"];
 
-                return ["Postage"=>$postage, "LabelUrl"=>$labelUrl, "TrackingId"=>$trackingId];
+                return ["Postage"=>$postage, "LabelUrl"=>$labelUrl, "TrackingId"=>$trackingId, "LabelFormat"=>"PDF", "LabelLength"=>576];
             } elseif (isset($shipmentResponse["status"])) {
                 throw new \Wafl\Exceptions\Exception("Could not create shipment due to an error from the api. Status: ".$shipmentResponse["status"].(isset($shipmentResponse["messages"]) && isset($shipmentResponse["messages"][0])?", Message: ".$shipmentResponse["messages"][0]["text"]:""), E_ERROR, null, "Error creating shipment. ".(isset($shipmentResponse["messages"])&&isset($shipmentResponse["messages"][0])?$shipmentResponse["messages"][0]["text"]:""));
             }
@@ -1230,7 +1230,7 @@ implements \DblEj\Commerce\Integration\IShipperExtension
             $postage = $rateResponse["amount"];
             $trackingId = $rateResponse["tracking_number"];
 
-            return ["Postage"=>$postage, "LabelUrl"=>$labelUrl, "TrackingId"=>$trackingId];
+            return ["Postage"=>$postage, "LabelUrl"=>$labelUrl, "TrackingId"=>$trackingId, "LabelFormat"=>"PDF", "LabelLength"=>576];
         } else {
             throw new \Exception("Error creating shipment.  Status: ".$shipmentResponse["status"]);
         }
