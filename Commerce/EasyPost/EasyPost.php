@@ -20,6 +20,10 @@ implements \DblEj\Commerce\Integration\IShipperExtension
     private $_debugMode = false;
     public function Initialize(\DblEj\Application\IApplication $app)
     {
+        if (DIRECTORY_SEPARATOR == "\\")
+        {
+            self::$_logFile = "c:\\windows\\temp\\easypost.log";
+        }
         if (!self::$_logHandle)
         {
             self::$_logHandle = fopen(self::$_logFile, "a");
@@ -198,7 +202,7 @@ implements \DblEj\Commerce\Integration\IShipperExtension
 
     function GetCarrierNames()
     {
-        return ["USPS"=>"USPS", "DHLGlobalMail"=>"DHL Global Mail", "DHLGlobalmailInternational"=>"DHL GM International", "DHLExpress"=>"DHL Express", "FedEx"=>"FedEx", "UPS"=>"UPS"];
+        return ["USPS"=>"USPS", "DHLGlobalMail"=>"DHL Global Mail", "DHLGlobalmailInternational"=>"DHL Global Mail International", "DHLExpress"=>"DHL Express", "FedEx"=>"FedEx", "UPS"=>"UPS"];
     }
     function GetCarriers()
     {
@@ -719,6 +723,7 @@ implements \DblEj\Commerce\Integration\IShipperExtension
 
         $customerAccountNumber = isset($serviceFlags["carrier_account"])?$serviceFlags["carrier_account"]:null;
         $testCustomsId = isset($serviceFlags["customs_declaration"])?$serviceFlags["customs_declaration"]:null;
+        $invoiceId = isset($serviceFlags["invoice"])?$serviceFlags["invoice"]:null;
         if ($packageType == "DEFAULT")
         {
             $packageType = null;
@@ -751,7 +756,7 @@ implements \DblEj\Commerce\Integration\IShipperExtension
         }
         if ($weight > 0)
         {
-            $shipmentObject = $this->_createShipment($service, $packageType, $packageLength, $packageWidth, $packageHeight, $weight, $customerAccountNumber, $sourceName, $sourceCompany, $sourceAddress, $sourceCity, $sourceStateOrRegion, $sourcePostalCode, $sourceCountry, $sourcePhone, $sourceEmail, $destName, $destAddress, $destCity, $destStateOrRegion, $destPostalCode, $destCountry, $destPhone, $destEmail, $valueOfContents);
+            $shipmentObject = $this->_createShipment($service, $packageType, $packageLength, $packageWidth, $packageHeight, $weight, $customerAccountNumber, $sourceName, $sourceCompany, $sourceAddress, $sourceCity, $sourceStateOrRegion, $sourcePostalCode, $sourceCountry, $sourcePhone, $sourceEmail, $destName, $destAddress, $destCity, $destStateOrRegion, $destPostalCode, $destCountry, $destPhone, $destEmail, $valueOfContents, null, $invoiceId);
 
             if ($testCustomsId)
             {
@@ -794,8 +799,12 @@ implements \DblEj\Commerce\Integration\IShipperExtension
     }
 
 
-    private function _createShipment($service, $packageType, $packageLength, $packageWidth, $packageHeight, $weight, $customerAccountNumber, $sourceName, $sourceCompany, $sourceAddress, $sourceCity, $sourceStateOrRegion, $sourcePostalCode, $sourceCountry, $sourcePhone, $sourceEmail, $destName, $destAddress, $destCity, $destStateOrRegion, $destPostalCode, $destCountry, $destPhone, $destEmail, $valueOfContents)
+    private function _createShipment($service, $packageType, $packageLength, $packageWidth, $packageHeight, $weight, $customerAccountNumber, $sourceName, $sourceCompany, $sourceAddress, $sourceCity, $sourceStateOrRegion, $sourcePostalCode, $sourceCountry, $sourcePhone, $sourceEmail, $destName, $destAddress, $destCity, $destStateOrRegion, $destPostalCode, $destCountry, $destPhone, $destEmail, $valueOfContents, $shipDate = null, $invoiceNumber = null)
     {
+        if (!$shipDate)
+        {
+            $shipDate = time();
+        }
         if (strlen($destAddress) > 44)
         {
             $destAddressLine1 = substr($destAddress, 0, 44); //labels were being cutoff when we did fifty so we reduced it to 44
@@ -857,7 +866,10 @@ implements \DblEj\Commerce\Integration\IShipperExtension
             ,
             "options"=>
                 [
-                "label_size"=>"4x6"
+                    "label_size"=>"4x6",
+                    "label_date"=>gmdate("Y-m-d\TH:i:s\Z", $shipDate),
+                    "invoice_number"=>$invoiceNumber,
+                    "endorsement"=>"RETURN_SERVICE_REQUESTED"
                 ]
             ]];
         if ($destAddressLine2)
@@ -989,7 +1001,7 @@ implements \DblEj\Commerce\Integration\IShipperExtension
                     //4 = weight
                     //5 = origin country
                     //this is temporary pending a good functioniong standard interface for line items
-                    $testCustomsItem = ["customs_item"=>["description"=>substr($lineItem[3], 0, 49), "quantity"=>  floatval($lineItem[1]), "weight"=>round($lineItem[4]*$lineItem[1], 3), "value"=>round($lineItem[2]*$lineItem[1], 3), "currency"=>"USD", "origin_country"=>$lineItem[5], "code"=>$lineItem[0]]];
+                    $testCustomsItem = ["customs_item"=>["description"=>substr($lineItem[3], 0, 49), "quantity"=>floatval($lineItem[1]), "weight"=>round($lineItem[4]*$lineItem[1], 3), "value"=>round(floatval($lineItem[2])*floatval($lineItem[1]), 3), "currency"=>"USD", "origin_country"=>$lineItem[5], "code"=>$lineItem[0]]];
                     $testCustomItemResponse = $this->callApi("customs_items", $testCustomsItem, \DblEj\Communication\Http\Request::HTTP_POST, true);
                     $easyPostItemIds[] = $testCustomItemResponse["id"];
                 }
@@ -1040,6 +1052,26 @@ implements \DblEj\Commerce\Integration\IShipperExtension
             throw new \Wafl\Exceptions\Exception("Could not create customs declaration due to an error. $errorMsg", E_WARNING, null, $errorMsg);
         }
         return $testCustomsResponse?$testCustomsResponse["id"]:null;
+    }
+
+    public function CreateManifest($fromName, $fromCompany, $fromAddress1, $fromAddress2, $fromCity, $fromState, $fromPostal, $fromCountry, $fromPhone, $fromEmail, $carrierId, $shipmentDate, $shipmentIds)
+    {
+        $shipmentObjects = ["shipments"=>[]];
+        foreach ($shipmentIds as $shipmentId)
+        {
+            $shipmentObjects["shipments"][] = ["id" => $shipmentId];
+        }
+        if (!$shipmentObjects)
+        {
+            throw new \Exception("There are no matching shipments");
+        }
+        $scanFormResponse = $this->callApi("scan_forms", $shipmentObjects, \DblEj\Communication\Http\Request::HTTP_POST, true);
+
+        if (!isset($scanFormResponse["form_url"]))
+        {
+            throw new \Exception("Could not get scan form. ". print_r($scanFormResponse, true).(isset($scanFormResponse["message"])?$scanFormResponse["message"]:""));
+        }
+        return [$scanFormResponse["id"], [$scanFormResponse["form_url"]]];
     }
 
     public function CreateShipment($service, $sourceName, $sourceCompany = null, $sourceAddress = null, $sourceCity = null, $sourceStateOrRegion = null, $sourceCountry = null, $sourcePostalCode = null,
@@ -1105,7 +1137,7 @@ implements \DblEj\Commerce\Integration\IShipperExtension
                 $trackingId = $shipmentResponse["tracking_code"];
                 $postage = $rate["rate"];
 
-                return ["Postage"=>$postage, "LabelUrl"=>$labelUrl, "TrackingId"=>$trackingId, "LabelFormat"=>"PNG", "LabelLength"=>1800];
+                return ["Postage"=>$postage, "LabelUrl"=>$labelUrl, "TrackingId"=>$trackingId, "LabelFormat"=>"PNG", "LabelLength"=>1800, "Uid"=>$shipmentResponse["id"]];
             } elseif (isset($shipmentResponse["status"])) {
                 throw new \Wafl\Exceptions\Exception("Could not create shipment due to an error from the api. Status: ".$shipmentResponse["status"].(isset($shipmentResponse["messages"]) && isset($shipmentResponse["messages"][0])?", Message: ".$shipmentResponse["messages"][0]["text"]:""), E_ERROR, null, "Error creating shipment. ".(isset($shipmentResponse["messages"])&&isset($shipmentResponse["messages"][0])?$shipmentResponse["messages"][0]["text"]:""));
             }
@@ -1129,7 +1161,7 @@ implements \DblEj\Commerce\Integration\IShipperExtension
             $trackingId = $shipmentResponse["tracker"]["tracking_code"];
             $labelUrl = $shipmentResponse["postage_label"]["label_url"];
 
-            return ["Postage"=>$postage, "LabelUrl"=>$labelUrl, "TrackingId"=>$trackingId, "LabelFormat"=>"PNG", "LabelLength"=>1800];
+            return ["Postage"=>$postage, "LabelUrl"=>$labelUrl, "TrackingId"=>$trackingId, "LabelFormat"=>"PNG", "LabelLength"=>1800, "Uid"=>$shipmentResponse["id"]];
         } else {
             throw new \Exception("Error creating shipment.  Status: ".$shipmentResponse["status"]);
         }

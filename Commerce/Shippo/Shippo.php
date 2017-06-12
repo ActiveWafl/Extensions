@@ -20,6 +20,10 @@ implements \DblEj\Commerce\Integration\IShipperExtension
 
     public function Initialize(\DblEj\Application\IApplication $app)
     {
+        if (DIRECTORY_SEPARATOR == "\\")
+        {
+            self::$_logFile = "c:\\windows\\temp\\shippo.log";
+        }
         if (!self::$_logHandle)
         {
             self::$_logHandle = fopen(self::$_logFile, "a");
@@ -177,6 +181,7 @@ implements \DblEj\Commerce\Integration\IShipperExtension
         $shipInfo = $this->callApi($uri);
         $events = [];
         $deliveryDate = isset($shipInfo["eta"])?strtotime($shipInfo["eta"]):null;
+        print_r($shipInfo["tracking_history"]);die();
         foreach ($shipInfo["tracking_history"] as $historyEvent)
         {
             $events[] = ["Uid"=>$historyEvent["object_id"], "EventDate"=>strtotime($historyEvent["status_date"]), "Description"=>$historyEvent["status_details"], "City"=>$historyEvent["location"]["city"], "State"=>$historyEvent["location"]["state"], "Country"=>$historyEvent["location"]["country"], "Postal"=>$historyEvent["location"]["zip"], "ShipperCode"=>$historyEvent["status"], "EventCode"=>self::_lookupEventCode($historyEvent["status"], $historyEvent["status_details"])];
@@ -883,7 +888,40 @@ implements \DblEj\Commerce\Integration\IShipperExtension
         }
     }
 
+    private function _createAddressObject($name, $company, $street1, $street2, $city, $stateOrRegion, $country, $postalCode, $phone, $email)
+    {
+        $addy =
+            [
+                "name"=>$name,
+                "street1"=>$street1,
+                "city"=>$city,
+                "country"=>$country,
+                "phone"=>$phone,
+                "email"=>$email
+            ];
+        if ($street2)
+        {
+            $addy["street2"] = $street2;
+        }
+        if ($company)
+        {
+            $addy["company"] = $company;
+            if (!$name)
+            {
+                $addy["name"] = $company;
+            }
+        }
+        if ($stateOrRegion)
+        {
+            $addy["state"] = $stateOrRegion;
+        }
+        if ($postalCode)
+        {
+            $addy["zip"] = $postalCode;
+        }
 
+        return $addy;
+    }
     private function _createShipment($service, $packageType, $packageLength, $packageWidth, $packageHeight, $weight, $customerAccountNumber, $sourceName, $sourceCompany, $sourceAddress, $sourceCity, $sourceStateOrRegion, $sourcePostalCode, $sourceCountry, $sourcePhone, $sourceEmail, $destName, $destAddress, $destCity, $destStateOrRegion, $destPostalCode, $destCountry, $destPhone, $destEmail, $valueOfContents)
     {
         if (strlen($destAddress) > 44)
@@ -917,24 +955,8 @@ implements \DblEj\Commerce\Integration\IShipperExtension
 
         $shipmentObject =
         [
-            "address_to"=>
-            [
-                "name"=>$destName,
-                "street1"=>$destAddressLine1,
-                "city"=>$destCity,
-                "country"=>$destCountry,
-                "phone"=>$destPhone,
-                "email"=>$destEmail
-            ],
-            "address_from"=>
-            [
-                "street1"=>$srcAddressLine1,
-                "city"=>$sourceCity,
-                "zip"=>"$sourcePostalCode",
-                "country"=>$sourceCountry,
-                "phone"=>$sourcePhone,
-                "email"=>$sourceEmail
-            ],
+            "address_to"=>$this->_createAddressObject($destName, null, $destAddressLine1, $destAddressLine2, $destCity, $destStateOrRegion, $destCountry, $destPostalCode, $destPhone, $destEmail),
+            "address_from"=>$this->_createAddressObject($destName, $sourceCompany, $srcAddressLine1, $srcAddressLine2, $sourceCity, $sourceStateOrRegion, $sourceCountry, $sourcePostalCode, $sourcePhone, $sourceEmail),
             "parcels"=>
             [
                 [
@@ -948,38 +970,7 @@ implements \DblEj\Commerce\Integration\IShipperExtension
             ],
             "async"=>false
         ];
-        if ($destAddressLine2)
-        {
-            $shipmentObject["address_to"]["street2"] = $destAddressLine2;
-        }
-        if ($srcAddressLine2)
-        {
-            $shipmentObject["address_from"]["street2"] = $srcAddressLine2;
-        }
-        if ($sourceName)
-        {
-            $shipmentObject["address_from"]["name"] = $sourceName;
-        }
-        if ($sourceCompany)
-        {
-            $shipmentObject["address_from"]["company"] = $sourceCompany;
-            if (!$sourceName)
-            {
-                $shipmentObject["address_from"]["name"] = $sourceCompany;
-            }
-        }
-        if ($destStateOrRegion)
-        {
-            $shipmentObject["address_to"]["state"] = $destStateOrRegion;
-        }
-        if ($destPostalCode)
-        {
-            $shipmentObject["address_to"]["zip"] = $destPostalCode;
-        }
-        if ($sourceStateOrRegion)
-        {
-            $shipmentObject["address_from"]["state"] = $sourceStateOrRegion;
-        }
+
         if ($packageType != "DEFAULT" && $packageType != null)
         {
             $shipmentObject["parcels"][0]["template"] = $packageType;
@@ -1101,6 +1092,22 @@ implements \DblEj\Commerce\Integration\IShipperExtension
         return $testCustomsResponse?$testCustomsResponse["object_id"]:null;
     }
 
+    public function CreateManifest($fromName, $fromCompany, $fromAddress1, $fromAddress2, $fromCity, $fromState, $fromPostal, $fromCountry, $fromPhone, $fromEmail, $carrierId, $shipmentDate, $shipmentIds)
+    {
+        $addressObject = $this->_createAddressObject($fromName, $fromCompany, $fromAddress1, $fromAddress2, $fromCity, $fromState, $fromCountry, $fromPostal, $fromPhone, $fromEmail);
+        $addressObject = $this->callApi("addresses", $addressObject, \DblEj\Communication\Http\Request::HTTP_POST, true);
+
+        $formattedDate = strftime("%Y-%m-%dT%H:%M:%SZ", $shipmentDate);
+        $scanFormResponse = $this->callApi("manifests", ["async"=>false, "address_from"=>$addressObject["object_id"], "carrier_account"=>$carrierId, "shipment_date"=>$formattedDate], \DblEj\Communication\Http\Request::HTTP_POST, true);
+
+        if (!isset($scanFormResponse["documents"]) || !$scanFormResponse["documents"])
+        {
+            throw new \Exception("Could not get manifest. ".print_r($scanFormResponse, true).(isset($scanFormResponse["status"])?$scanFormResponse["status"]:""));
+        }
+        
+        return [$scanFormResponse["object_id"], $scanFormResponse["documents"]];
+    }
+
     public function CreateShipment($service, $sourceName, $sourceCompany = null, $sourceAddress = null, $sourceCity = null, $sourceStateOrRegion = null, $sourceCountry = null, $sourcePostalCode = null,
         $sourcePhone = null, $sourceEmail = null, $destName = null, $destAddress = null, $destCity = null, $destStateOrRegion = null, $destCountry = null, $destPostalCode = null,
         $destPhone = null, $destEmail = null,
@@ -1160,7 +1167,7 @@ implements \DblEj\Commerce\Integration\IShipperExtension
                 $trackingId = $shipmentResponse["tracking_number"];
                 $postage = $rate["amount"];
 
-                return ["Postage"=>$postage, "LabelUrl"=>$labelUrl, "TrackingId"=>$trackingId, "LabelFormat"=>"PDF", "LabelLength"=>576];
+                return ["Postage"=>$postage, "LabelUrl"=>$labelUrl, "TrackingId"=>$trackingId, "LabelFormat"=>"PDF", "LabelLength"=>576, "Uid"=>$shipmentResponse["object_id"]];
             } elseif (isset($shipmentResponse["status"])) {
                 throw new \Wafl\Exceptions\Exception("Could not create shipment due to an error from the api. Status: ".$shipmentResponse["status"].(isset($shipmentResponse["messages"]) && isset($shipmentResponse["messages"][0])?", Message: ".$shipmentResponse["messages"][0]["text"]:""), E_ERROR, null, "Error creating shipment. ".(isset($shipmentResponse["messages"])&&isset($shipmentResponse["messages"][0])?$shipmentResponse["messages"][0]["text"]:""));
             }
@@ -1230,7 +1237,7 @@ implements \DblEj\Commerce\Integration\IShipperExtension
             $postage = $rateResponse["amount"];
             $trackingId = $rateResponse["tracking_number"];
 
-            return ["Postage"=>$postage, "LabelUrl"=>$labelUrl, "TrackingId"=>$trackingId, "LabelFormat"=>"PDF", "LabelLength"=>576];
+            return ["Postage"=>$postage, "LabelUrl"=>$labelUrl, "TrackingId"=>$trackingId, "LabelFormat"=>"PDF", "LabelLength"=>576, "Uid"=>$shipmentResponse["object_id"]];
         } else {
             throw new \Exception("Error creating shipment.  Status: ".$shipmentResponse["status"]);
         }

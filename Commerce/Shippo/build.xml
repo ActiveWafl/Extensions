@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project name="Shippo Wafl Extension" default="Build">
     <property name="ExtensionName" value="Shippo"/>
-    <property name="ExtensionVersion" value="0.0.7" />
+    <property name="ExtensionVersion" value="0.0.10" />
     
     <condition property="is_windows">
         <os family="windows" />
