@@ -183,11 +183,10 @@ implements \DblEj\Commerce\Integration\IShipperExtension
         }
         $trackingid = preg_replace("/\\s/", "", $trackingid);
         $uri = "trackers";
-        $shipInfo = $this->callApi($uri, ["tracker[tracking_code]"=>$trackingid, "tracker[carrier]"=>$carrierName]);
+        $shipInfo = $this->callApi($uri, ["tracker"=>["tracking_code"=>$trackingid, "carrier"=>$carrierName]], \DblEj\Communication\Http\Request::HTTP_POST, true);
         $events = [];
         $deliveryDate = isset($shipInfo["est_delivery_date"])?strtotime($shipInfo["est_delivery_date"]):null;
         $lastStatusMessage = null;
-        $shipInfo = $shipInfo["trackers"][0];
         foreach ($shipInfo["tracking_details"] as $historyEvent)
         {
             $events[] = ["Uid"=>$historyEvent["status"].$historyEvent["datetime"], "EventDate"=>strtotime($historyEvent["datetime"]), "Description"=>$historyEvent["message"], "City"=>$historyEvent["tracking_location"]["city"], "State"=>$historyEvent["tracking_location"]["state"], "Country"=>$historyEvent["tracking_location"]["country"], "Postal"=>$historyEvent["tracking_location"]["zip"], "ShipperCode"=>$historyEvent["status"], "EventCode"=>self::_lookupEventCode($historyEvent["status"], $historyEvent["message"])];
@@ -922,7 +921,7 @@ implements \DblEj\Commerce\Integration\IShipperExtension
             case "unknown":
                 break;
             case "pre_transit":
-                if (stristr($easyPostDescription, "Shipping Label Created"))
+                if (stristr($easyPostDescription, "ELECTRONIC NOTIFICATION RECEIVED"))
                 {
                     $code = 5;
                 } else {
@@ -930,29 +929,29 @@ implements \DblEj\Commerce\Integration\IShipperExtension
                 }
                 break;
             case "in_transit":
-                if (stristr($easyPostDescription, "out for delivery"))
+                if (stristr($easyPostDescription, "MANIFESTED FOR OUTBOUND TRANSPORTATION"))
                 {
-                    $code = 100;
+                    $code = 75;
                 }
-                elseif (stristr($easyPostDescription, "has been sorted"))
+                elseif (stristr($easyPostDescription, "PROCESSING COMPLETED AT ORIGIN"))
                 {
-                    $code = 70;
+                    $code = 75;
                 }
-                elseif (stristr($easyPostDescription, "arrived at the shipping partner"))
+                elseif (stristr($easyPostDescription, "PROCESSED"))
+                {
+                    $code = 75;
+                }
+                elseif (stristr($easyPostDescription, "ARRIVAL AT DHL ECOMMERCE DISTRIBUTION CENTER"))
                 {
                     $code = 60;
                 }
-                elseif (stristr($easyPostDescription, "accepted at the USPS destination"))
+                elseif (stristr($easyPostDescription, "ARRIVAL AT DESTINATION COUNTRY"))
                 {
                     $code = 60;
                 }
-                elseif (stristr($easyPostDescription, "arrived at post office"))
+                elseif (stristr($easyPostDescription, "EN ROUTE TO DHL ECOMMERCE DISTRIBUTION CENTER"))
                 {
-                    $code = 60;
-                }
-                elseif (stristr($easyPostDescription, "departed the shipping partner"))
-                {
-                    $code = 65;
+                    $code = 40;
                 }
                 else
                 {

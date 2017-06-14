@@ -181,10 +181,10 @@ implements \DblEj\Commerce\Integration\IShipperExtension
         $shipInfo = $this->callApi($uri);
         $events = [];
         $deliveryDate = isset($shipInfo["eta"])?strtotime($shipInfo["eta"]):null;
-        print_r($shipInfo["tracking_history"]);die();
+
         foreach ($shipInfo["tracking_history"] as $historyEvent)
         {
-            $events[] = ["Uid"=>$historyEvent["object_id"], "EventDate"=>strtotime($historyEvent["status_date"]), "Description"=>$historyEvent["status_details"], "City"=>$historyEvent["location"]["city"], "State"=>$historyEvent["location"]["state"], "Country"=>$historyEvent["location"]["country"], "Postal"=>$historyEvent["location"]["zip"], "ShipperCode"=>$historyEvent["status"], "EventCode"=>self::_lookupEventCode($historyEvent["status"], $historyEvent["status_details"])];
+            $events[] = ["Uid"=>$historyEvent["object_id"], "EventDate"=>strtotime($historyEvent["status_date"]), "Description"=>$historyEvent["status_details"], "City"=>isset($historyEvent["location"])?$historyEvent["location"]["city"]:null, "State"=>isset($historyEvent["location"])?$historyEvent["location"]["state"]:null, "Country"=>isset($historyEvent["location"])?$historyEvent["location"]["country"]:null, "Postal"=>isset($historyEvent["location"])?$historyEvent["location"]["zip"]:null, "ShipperCode"=>$historyEvent["status"], "EventCode"=>self::_lookupEventCode($historyEvent["status"], $historyEvent["status_details"])];
             if ($historyEvent["status"] == "DELIVERED")
             {
                 $deliveryDate = strtotime($historyEvent["status_date"]);
@@ -1104,7 +1104,7 @@ implements \DblEj\Commerce\Integration\IShipperExtension
         {
             throw new \Exception("Could not get manifest. ".print_r($scanFormResponse, true).(isset($scanFormResponse["status"])?$scanFormResponse["status"]:""));
         }
-        
+
         return [$scanFormResponse["object_id"], $scanFormResponse["documents"]];
     }
 
