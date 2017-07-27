@@ -500,7 +500,7 @@ implements \DblEj\Commerce\Integration\IShipperExtension
             case "USPS":
                 return  [
                             "Card"=>"Card",
-                            "Letter"=>"Envelope",
+                            "Letter"=>"Letter Envelope",
                             "Flat"=>"Large Flat Envelope",
                             "Parcel"=>"Package",
                             "LargeParcel"=>"Large Package",
