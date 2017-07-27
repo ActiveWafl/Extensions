@@ -7,6 +7,7 @@ interface IReport
     public function GetAllInputs();
     public function GetInputAllowedValues($inputId, $setInputValues = null);
     public function GetReportData($inputValues);
+    public function GetFormattedReportData($inputValues);
     public function GetTemplatePath();
     public function GetTemplateCssPath();
     public function GetInputDependencies();

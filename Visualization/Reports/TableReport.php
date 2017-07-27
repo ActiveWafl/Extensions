@@ -29,6 +29,11 @@ implements IReport
         return $fieldInfo;
     }
 
+    public function GetFormattedReportData($inputValues)
+    {
+        return $this->GetReportData($inputValues);
+    }
+
     public function GetField($fieldName)
     {
         $fieldInfo = $this->GetFieldInfo();
@@ -37,6 +42,11 @@ implements IReport
             throw new \Exception("Invalid field specified: $fieldName");
         }
         return $fieldInfo[$fieldName];
+    }
+
+    public function GetInputDataType($inputName)
+    {
+        return null;
     }
 
     public function GetFieldDataType($fieldName)

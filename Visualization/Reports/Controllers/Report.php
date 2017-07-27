@@ -72,7 +72,7 @@ extends ControllerBase
 
         if ($format == "csv")
         {
-            $reportData = $report->GetReportData($allInputs);
+            $reportData = $report->GetFormattedReportData($allInputs);
             $csv = implode("\t",$report->GetFields())."\n";
             $csv .= $this->_arrayToCsv($reportData);
             $headers = new \DblEj\Communication\Http\Headers("text/csv");

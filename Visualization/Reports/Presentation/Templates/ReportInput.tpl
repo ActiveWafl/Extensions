@@ -29,7 +29,7 @@
                                                 <option value="{$ALLOWED_VALUE_ID}" {if $ALLOWED_VALUE_ID == $SET_REPORT_INPUTS[$REPORT_INPUT_ID]}selected{/if}>{$ALLOWED_VALUE_LABEL}</option>
                                             {/foreach}
                                             </select>
-                                        {elseif $REPORT->GetFieldDataType($REPORT_INPUT_ID) == "Date"}
+                                        {elseif $REPORT->GetInputDataType($REPORT_INPUT_ID) == "Date"}
                                             {ui PostName="$REPORT_INPUT_ID" name="DatePicker" Value=$SET_REPORT_INPUTS[$REPORT_INPUT_ID] Attributes="readonly"}
                                         {else}
                                             <input type="text" name="{$REPORT_INPUT_ID}" value="{$SET_REPORT_INPUTS[$REPORT_INPUT_ID]}" readonly />
@@ -41,7 +41,7 @@
                                                 <option value="{$ALLOWED_VALUE_ID}">{$ALLOWED_VALUE_LABEL}</option>
                                             {/foreach}
                                             </select>
-                                        {elseif $REPORT->GetFieldDataType($REPORT_INPUT_ID) == "Date"}
+                                        {elseif $REPORT->GetInputDataType($REPORT_INPUT_ID) == "Date"}
                                             {ui PostName="$REPORT_INPUT_ID" name="DatePicker"}
                                         {else}
                                             <input type="text" name="{$REPORT_INPUT_ID}" />
