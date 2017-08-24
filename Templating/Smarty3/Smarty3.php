@@ -5,7 +5,7 @@ namespace Wafl\Extensions\Templating\Smarty3;
 use DblEj\Application\IApplication,
     DblEj\Extension\ExtensionBase,
     DblEj\Extension\DependencyCollection,
-    DblEj\Minification\Html,
+    DblEj\Text\Minifiers\Html,
     DblEj\Presentation\ITemplate,
     DblEj\Presentation\RenderOptions,
     DblEj\UI\Stylesheet,
