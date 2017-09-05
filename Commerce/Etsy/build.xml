@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project name="Etsy Wafl Extension" default="Build">
     <property name="ExtensionName" value="Etsy"/>
-    <property name="ExtensionVersion" value="0.0.10" />
+    <property name="ExtensionVersion" value="0.0.12" />
     
     <condition property="is_windows">
         <os family="windows" />

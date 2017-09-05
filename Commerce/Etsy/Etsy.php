@@ -86,39 +86,23 @@ implements \DblEj\Commerce\Integration\ISellerAggregatorExtension
             return null;
         }
     }
-    public function GetOrders($minCreateDate = 0, $minLastModified = 0, $limit = 50, $offset = 0, $serviceArgs = [])
+    public function GetOrders($onlyOpen = false, $limit = 50, $offset = 0, $serviceArgs = [])
     {
-        $args = ["min_created"=>$minCreateDate, "min_last_modified"=>$minLastModified, "limit"=>$limit, "offset"=>$offset];
+        $args = ["limit"=>$limit, "offset"=>$offset];
 
-        $includeShippedOrders = isset($serviceArgs["Shipped Orders"])?$serviceArgs["Shipped Orders"]:null;
         $includeTransactions = isset($serviceArgs["Include Transaction Data"])?$serviceArgs["Include Transaction Data"]:true;
-        $wasPaid = isset($serviceArgs["Paid Orders"])?$serviceArgs["Paid Orders"]:null;
-        $maxCreate = isset($serviceArgs["Max Create Date"])?$serviceArgs["Max Create Date"]:null;
 
-        if ($maxCreate)
-        {
-            $args["max_created"] = $maxCreate;
-        }
-        if ($includeShippedOrders === true)
-        {
-            $args["was_shipped"] = "true";
-        } elseif ($includeShippedOrders === false) {
-            $args["was_shipped"] = "false";
-        }
         if ($includeTransactions)
         {
             $args["includes"]="Country,Transactions:100,Transactions/MainImage";
         }
-        if ($wasPaid === true)
+        if (isset($serviceArgs["min_last_modified"]))
         {
-            $args["was_paid"] = "true";
-        } elseif ($wasPaid === false) {
-            $args["was_paid"] = "false";
+            $args["min_last_modified"] = $serviceArgs["min_last_modified"];
         }
-
-        $rawOrders = $this->callApi("shops/$this->_etsyShopName/receipts", $args);
+        $status = $onlyOpen?"open":"all";
+        $rawOrders = $this->callApi("shops/$this->_etsyShopName/receipts/$status", $args);
         $orders = [];
-        $listingImageUrls = [];
         foreach ($rawOrders["results"] as $rawOrder)
         {
             $orders[] = $this->_createOrderFromReceipt($rawOrder);
@@ -183,7 +167,7 @@ implements \DblEj\Commerce\Integration\ISellerAggregatorExtension
             $shippingFirstName = $fullName;
             $shippingLastName = "";
         }
-        return new \Wafl\CommonObjects\Commerce\Order("Etsy.com", $rawOrder["receipt_id"], $rawOrder["creation_tsz"], $rawOrder["buyer_email"], $rawOrder["subtotal"],
+        return new \Wafl\CommonObjects\Commerce\Order("Etsy.com", $rawOrder["receipt_id"], $rawOrder["creation_tsz"], $rawOrder["buyer_email"], $rawOrder["subtotal"]+$rawOrder["discount_amt"],
                                                     $rawOrder["grandtotal"], $rawOrder["total_shipping_cost"], $rawOrder["total_tax_cost"], $rawOrder["total_price"],
                                                     $shippingFirstName, $shippingLastName, $rawOrder["first_line"], $rawOrder["second_line"], $rawOrder["city"], $rawOrder["state"], $buyerCountry, $rawOrder["zip"],
                                                     $rawOrder["shipping_details"]["shipping_method"], $paymentMethod, $paymentStatus, $lineItems,
@@ -375,11 +359,17 @@ implements \DblEj\Commerce\Integration\ISellerAggregatorExtension
             }
             catch (\OAuthException $ex)
             {
-                throw new \Exception("Error calling the Etsy API ($url): ".$ex->getMessage());
+                if (stristr($ex->lastResponse, "quota") !== false)
+                {
+                    //we have exceeded 24 hr quota.
+                    throw new \Wafl\Exceptions\Exception("Error calling the Etsy API ($url): ".$ex->getMessage().", ".$ex->lastResponse, E_ERROR, null, "Etsy 24 hr quota has been exceeded");
+                } else {
+                    throw new \Wafl\Exceptions\Exception("Error calling the Etsy API ($url): ".$ex->getMessage(), E_ERROR, null, "Error calling the Etsy API: ".$ex->lastResponse);
+                }
             }
             catch (\Exception $ex)
             {
-                throw new \Exception("Error calling the Etsy API ($url): ".$ex->getMessage());
+                throw new \Wafl\Exceptions\Exception("Error calling the Etsy API ($url): ".$ex->getMessage(), E_ERROR, null, "There was an unspecified error calling the Etsy API.");
             }
             $json = self::$_oauthObject->getLastResponse();
         } else {
