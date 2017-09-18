@@ -153,9 +153,9 @@ class Ups implements \DblEj\Commerce\Integration\IShipperExtension {
         return [];
     }
 
-    public function GetServiceFlagNames($serviceName = null, $packageType = null, $packageQualifier = null)
+    public function GetServiceOptions($serviceName = null, $packageType = null, $packageQualifier = null)
     {
-        return [];
+        return ["Options"=>[], "AdvancedOptions"=>[]];
     }
 
     public function Configure($settingName, $settingValue)

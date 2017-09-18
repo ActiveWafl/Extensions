@@ -693,9 +693,26 @@ implements \DblEj\Commerce\Integration\IShipperExtension
         return $dimensions;
     }
 
-    public function GetServiceFlagNames($serviceName = null, $packageType = null, $packageQualifier = null)
+    public function GetServiceOptions($serviceName = null, $packageType = null, $packageQualifier = null)
     {
-        return [];
+        $options =
+        [
+            "delivery_confirmation"=>["Delivery Confirmation", "Unset", ["NO_SIGNATURE"=>"Signature not required", "SIGNATURE"=>"Signature required", "ADULT_SIGNATURE"=>"Adult signature required", "Unset"=>""]],
+        ];
+
+        $advancedOptions =
+        [
+            "alcohol"=>["Contains Alcolhol", "no" , ["yes"=>"Yes", "no"=>"No"]],
+            "by_drone"=>["Deliver by drone (if available)", "no", ["yes"=>"Yes", "no"=>"No"]],
+            "endorsement"=>["Endorsement", "RETURN_SERVICE_REQUESTED" ,["ADDRESS_SERVICE_REQUESTED"=>"Address Service Requested", "FORWARDING_SERVICE_REQUESTED"=>"Forwarding Service Requested", "CHANGE_SERVICE_REQUESTED"=>"Change Service Requested", "RETURN_SERVICE_REQUESTED"=>"Return Service Requested", "LEAVE_IF_NO_RESPONSE"=>"Leave if no response"]],
+            "hold_for_pickup"=>["Hold for pickup at carrier facility", "no", ["yes"=>"Yes", "no"=>"No"]],
+            "incoterm"=>["Incoterm", "Unset" ,["Unset"=>"", "EXW"=>"EXW", "FCA"=>"FCA", "CPT"=>"CPT", "CIP"=>"CIP", "DAT"=>"DAT", "DAP"=>"DAP", "DDP"=>"DDP", "FAS"=>"FAS", "FOB"=>"FOB", "CFR"=>"CFR", "CIF"=>"CIF"]],
+            "carbon_neutral"=>["Only use green energy for delivery", "no", ["yes"=>"Yes", "no"=>"No"]],
+            "machinable"=>["Package is machinable", "Unset", ["yes"=>"Yes", "no"=>"No", "Unset"=>""]],
+            "saturday_delivery"=>["Saturday Delivery", "no", ["yes"=>"Yes", "no"=>"No"]]
+        ];
+
+        return ["Options"=>$options, "AdvancedOptions"=>$advancedOptions];
     }
     public function GetPackageQualifiers($serviceName = null, $packageType = null)
     {
@@ -755,7 +772,7 @@ implements \DblEj\Commerce\Integration\IShipperExtension
         }
         if ($weight > 0)
         {
-            $shipmentObject = $this->_createShipment($service, $packageType, $packageLength, $packageWidth, $packageHeight, $weight, $customerAccountNumber, $sourceName, $sourceCompany, $sourceAddress, $sourceCity, $sourceStateOrRegion, $sourcePostalCode, $sourceCountry, $sourcePhone, $sourceEmail, $destName, $destAddress, $destCity, $destStateOrRegion, $destPostalCode, $destCountry, $destPhone, $destEmail, $valueOfContents, null, $invoiceId);
+            $shipmentObject = $this->_createShipment($service, $packageType, $packageLength, $packageWidth, $packageHeight, $weight, $customerAccountNumber, $sourceName, $sourceCompany, $sourceAddress, $sourceCity, $sourceStateOrRegion, $sourcePostalCode, $sourceCountry, $sourcePhone, $sourceEmail, $destName, $destAddress, $destCity, $destStateOrRegion, $destPostalCode, $destCountry, $destPhone, $destEmail, $valueOfContents, null, $invoiceId, $serviceFlags);
 
             if ($testCustomsId)
             {
@@ -798,7 +815,7 @@ implements \DblEj\Commerce\Integration\IShipperExtension
     }
 
 
-    private function _createShipment($service, $packageType, $packageLength, $packageWidth, $packageHeight, $weight, $customerAccountNumber, $sourceName, $sourceCompany, $sourceAddress, $sourceCity, $sourceStateOrRegion, $sourcePostalCode, $sourceCountry, $sourcePhone, $sourceEmail, $destName, $destAddress, $destCity, $destStateOrRegion, $destPostalCode, $destCountry, $destPhone, $destEmail, $valueOfContents, $shipDate = null, $invoiceNumber = null)
+    private function _createShipment($service, $packageType, $packageLength, $packageWidth, $packageHeight, $weight, $customerAccountNumber, $sourceName, $sourceCompany, $sourceAddress, $sourceCity, $sourceStateOrRegion, $sourcePostalCode, $sourceCountry, $sourcePhone, $sourceEmail, $destName, $destAddress, $destCity, $destStateOrRegion, $destPostalCode, $destCountry, $destPhone, $destEmail, $valueOfContents, $shipDate = null, $invoiceNumber = null, $serviceFlags = [])
     {
         if (!$shipDate)
         {
@@ -868,9 +885,36 @@ implements \DblEj\Commerce\Integration\IShipperExtension
                     "label_size"=>"4x6",
                     "label_date"=>gmdate("Y-m-d\TH:i:s\Z", $shipDate),
                     "invoice_number"=>$invoiceNumber,
-                    "endorsement"=>"RETURN_SERVICE_REQUESTED"
                 ]
             ]];
+
+        //there are some flags that are hard coded and for our use only, not meant to be passed to api,
+        //so we filter those here.
+        //also, we are passing null for packageQualifier because it currently doesnt propogate this far
+        $serviceOptions = $this->GetServiceOptions($service, $packageType, null);
+        foreach ($serviceFlags as $serviceFlagKey=>$serviceFlagValue)
+        {
+            if ($serviceFlagValue == "yes")
+            {
+                $useValue = "1";
+            }
+            elseif ($serviceFlagValue == "no")
+            {
+                $useValue = "0";
+            }
+            else
+            {
+                $useValue = $serviceFlagValue;
+            }
+            if ($useValue != "Unset")
+            {
+                if (isset($serviceOptions["Options"][$serviceFlagKey]) || isset($serviceOptions["AdvancedOptions"][$serviceFlagKey]))
+                {
+                    $shipmentObject["shipment"]["options"][$serviceFlagKey] = $useValue;
+                }
+            }
+        }
+
         if ($destAddressLine2)
         {
             $shipmentObject["shipment"]["to_address"]["street2"] = $destAddressLine2;

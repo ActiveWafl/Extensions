@@ -457,14 +457,14 @@ implements \DblEj\Commerce\Integration\IShipperExtension, \DblEj\Commerce\Integr
         }
     }
 
-    public function GetServiceFlagNames($serviceName = null, $packageType = null, $packageQualifier = null)
+    public function GetServiceOptions($serviceName = null, $packageType = null, $packageQualifier = null)
     {
         $flags = [];
         if (($serviceName == "FIRST CLASS" && ($packageType == "LETTER" || $packageType == "FLAT")) || $serviceName == "STANDARD POST")
         {
             $flags[] = ["MACHINABLE"=>"Machinable"];
         }
-        return $flags;
+        return ["Options"=>$flags, "AdvancedOptions"=>[]];
     }
     public function GetShippingCost(
         $service, $sourceName, $sourceCompany = null, $sourceAddress = null, $sourceCity = null, $sourceStateOrRegion = null, $sourceCountry = null, $sourcePostalCode = null,

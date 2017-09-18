@@ -717,10 +717,23 @@ implements \DblEj\Commerce\Integration\IShipperExtension
                 }
         }
     }
-    public function GetServiceFlagNames($serviceName = null, $packageType = null, $packageQualifier = null)
+    public function GetServiceOptions($serviceName = null, $packageType = null, $packageQualifier = null)
     {
-        return [];
+        $options =
+        [
+            "signature_confirmation"=>["Delivery Confirmation", "Unset", ["Unset"=>"Signature not required", "STANDARD"=>"Signature required", "ADULT"=>"Adult signature required", "CERTIFIED"=>"Certified (USPS Only)"]],
+        ];
+
+        $advancedOptions =
+        [
+            "alcohol"=>["Contains Alcolhol", "no" , ["licensee"=>"Yes, for licensee", "consumer"=>"Yes, for consumer", "no"=>"No"]],
+            "incoterm"=>["Incoterm", "DDU" ,["DDP"=>"DDP", "DDU"=>"DDU"]],
+            "saturday_delivery"=>["Saturday Delivery", "no", ["yes"=>"Yes", "no"=>"No"]]
+        ];
+
+        return ["Options"=>$options, "AdvancedOptions"=>$advancedOptions];
     }
+
     public function GetPackageQualifiers($serviceName = null, $packageType = null)
     {
         return [];
@@ -791,7 +804,7 @@ implements \DblEj\Commerce\Integration\IShipperExtension
         }
         if ($weight > 0)
         {
-            $shipmentObject = $this->_createShipment($service, $packageType, $packageLength, $packageWidth, $packageHeight, $weight, $customerAccountNumber, $sourceName, $sourceCompany, $sourceAddress, $sourceCity, $sourceStateOrRegion, $sourcePostalCode, $sourceCountry, $sourcePhone, $sourceEmail, $destName, $destAddress, $destCity, $destStateOrRegion, $destPostalCode, $destCountry, $destPhone, $destEmail, $valueOfContents);
+            $shipmentObject = $this->_createShipment($service, $packageType, $packageLength, $packageWidth, $packageHeight, $weight, $customerAccountNumber, $sourceName, $sourceCompany, $sourceAddress, $sourceCity, $sourceStateOrRegion, $sourcePostalCode, $sourceCountry, $sourcePhone, $sourceEmail, $destName, $destAddress, $destCity, $destStateOrRegion, $destPostalCode, $destCountry, $destPhone, $destEmail, $valueOfContents, $serviceFlags);
             $shipmentObject["address_to"]["phone"] = $destPhone;
             if ($testCustomsId)
             {
@@ -922,7 +935,7 @@ implements \DblEj\Commerce\Integration\IShipperExtension
 
         return $addy;
     }
-    private function _createShipment($service, $packageType, $packageLength, $packageWidth, $packageHeight, $weight, $customerAccountNumber, $sourceName, $sourceCompany, $sourceAddress, $sourceCity, $sourceStateOrRegion, $sourcePostalCode, $sourceCountry, $sourcePhone, $sourceEmail, $destName, $destAddress, $destCity, $destStateOrRegion, $destPostalCode, $destCountry, $destPhone, $destEmail, $valueOfContents)
+    private function _createShipment($service, $packageType, $packageLength, $packageWidth, $packageHeight, $weight, $customerAccountNumber, $sourceName, $sourceCompany, $sourceAddress, $sourceCity, $sourceStateOrRegion, $sourcePostalCode, $sourceCountry, $sourcePhone, $sourceEmail, $destName, $destAddress, $destCity, $destStateOrRegion, $destPostalCode, $destCountry, $destPhone, $destEmail, $valueOfContents, $serviceFlags)
     {
         if (strlen($destAddress) > 44)
         {
@@ -978,6 +991,34 @@ implements \DblEj\Commerce\Integration\IShipperExtension
         if ($customerAccountNumber)
         {
             $shipmentObject["carrier_accounts"] = [$customerAccountNumber];
+        }
+
+        $serviceOptions = $this->GetServiceOptions($service, $packageType, null);
+        foreach ($serviceFlags as $serviceFlagKey=>$serviceFlagValue)
+        {
+            if ($serviceFlagValue == "yes")
+            {
+                $useValue = "1";
+            }
+            elseif ($serviceFlagValue == "no")
+            {
+                $useValue = "0";
+            }
+            else
+            {
+                $useValue = $serviceFlagValue;
+            }
+            if ($useValue != "Unset")
+            {
+                if (isset($serviceOptions["Options"][$serviceFlagKey]) || isset($serviceOptions["AdvancedOptions"][$serviceFlagKey]))
+                {
+                    if (!isset($shipmentObject["extra"]))
+                    {
+                        $shipmentObject["extra"] = [];
+                    }
+                    $shipmentObject["extra"][$serviceFlagKey] = $useValue;
+                }
+            }
         }
         return $shipmentObject;
     }
