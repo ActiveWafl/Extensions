@@ -78,8 +78,7 @@ implements \DblEj\Commerce\Integration\IPaymentGatewayExtension
                     [
                         "type"=>"individual",
                         "first_name" => $firstName,
-                        "last_name" => $lastName,
-                        "ssn_last_4" => $ssnLastFour
+                        "last_name" => $lastName
                     ];
             }
             if ($businessName)
@@ -95,10 +94,18 @@ implements \DblEj\Commerce\Integration\IPaymentGatewayExtension
                 }
                 $accountArray["legal_entity"]["business_name"] = $businessName;
                 $accountArray["legal_entity"]["type"] = "company";
+                $accountArray["legal_entity"]["personal_id_number"] = null;
+                $accountArray["legal_entity"]["ssn_last_4"] = null;
             }
             elseif ($taxId)
             {
+                if ($ssnLastFour != substr($taxId, strlen($taxId) - 4))
+                {
+                    throw new \Wafl\Exceptions\Exception("Last 4 of SS on payout account doesnt match sole proprieter tax id", E_ERROR, null, "For a sole proprietership, the last four of the owner's social security number must match the last four of the tax id.");
+                }
+                $accountArray["legal_entity"]["business_tax_id"] = null;
                 $accountArray["legal_entity"]["personal_id_number"] = $taxId;
+                $accountArray["legal_entity"]["ssn_last_4"] = $ssnLastFour;
             }
             if ($streetAddress || $city || $postalCode || $country || $stateOrCountyOrProvince)
             {
@@ -936,14 +943,26 @@ implements \DblEj\Commerce\Integration\IPaymentGatewayExtension
                 $stripeAccount->email = $payeeEmailAddress;
                 $stripeAccount->legal_entity["first_name"] = $firstName;
                 $stripeAccount->legal_entity["last_name"] = $lastName;
-                if ($ssnLastFour)
-                {
-                    $stripeAccount->legal_entity["ssn_last_4"] = $ssnLastFour;
-                }
 
                 if ($businessName)
                 {
                     $stripeAccount->legal_entity["business_name"] = $businessName;
+                    if ($taxId)
+                    {
+                        $stripeAccount->legal_entity["business_tax_id"] = $taxId;
+                        $stripeAccount->legal_entity["ssn_last_4"] = null;
+                        $stripeAccount->legal_entity["personal_id_number"] = null;
+                    }
+                }
+                elseif ($taxId && $ssnLastFour)
+                {
+                    if ($ssnLastFour != substr($taxId, strlen($taxId) - 4))
+                    {
+                        throw new \Wafl\Exceptions\Exception("Last 4 of SS on payout account doesnt match sole proprieter tax id", E_ERROR, null, "For a sole proprietership, the last four of the owner's social security number must match the last four of the tax id.");
+                    }
+                    $stripeAccount->legal_entity["business_tax_id"] = null;
+                    $stripeAccount->legal_entity["ssn_last_4"] = $ssnLastFour;
+                    $stripeAccount->legal_entity["personal_id_number"] = $taxId;
                 }
                 if ($country && ($country != $stripeAccount->country))
                 {
@@ -965,10 +984,6 @@ implements \DblEj\Commerce\Integration\IPaymentGatewayExtension
                     $stripeAccount->legal_entity["address"]["line1"] = "";
                 }
 
-                if ($taxId)
-                {
-                    $stripeAccount->legal_entity["business_tax_id"] = $taxId;
-                }
                 $stripeAccount->legal_entity["type"] = $businessName?"company":"individual";
                 if ($dobArray)
                 {

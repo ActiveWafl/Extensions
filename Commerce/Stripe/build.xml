@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project name="Stripe Wafl Extension" default="Build">
     <property name="ExtensionName" value="Stripe"/>
-    <property name="ExtensionVersion" value="0.0.8" />
+    <property name="ExtensionVersion" value="0.0.9" />
    
     <condition property="is_windows">
         <os family="windows" />
