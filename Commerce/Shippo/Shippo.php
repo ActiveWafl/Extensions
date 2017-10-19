@@ -182,15 +182,27 @@ implements \DblEj\Commerce\Integration\IShipperExtension
         $events = [];
         $deliveryDate = isset($shipInfo["eta"])?strtotime($shipInfo["eta"]):null;
 
+        $preTransitTransmitRecorded = false;
+
         foreach ($shipInfo["tracking_history"] as $historyEvent)
         {
-            $events[] = ["Uid"=>$historyEvent["object_id"], "EventDate"=>strtotime($historyEvent["status_date"]), "Description"=>$historyEvent["status_details"], "City"=>isset($historyEvent["location"])?$historyEvent["location"]["city"]:null, "State"=>isset($historyEvent["location"])?$historyEvent["location"]["state"]:null, "Country"=>isset($historyEvent["location"])?$historyEvent["location"]["country"]:null, "Postal"=>isset($historyEvent["location"])?$historyEvent["location"]["zip"]:null, "ShipperCode"=>$historyEvent["status"], "EventCode"=>self::_lookupEventCode($historyEvent["status"], $historyEvent["status_details"])];
+            $isTransitTransmit = stristr($historyEvent["status_details"], "Pre-Transit: Shipment information has been transmitted") !== false;
+            if (!$isTransitTransmit)
+            {
+                $events[] = ["Uid"=>$historyEvent["object_id"], "EventDate"=>strtotime($historyEvent["status_date"]), "Description"=>$historyEvent["status_details"], "City"=>isset($historyEvent["location"])?$historyEvent["location"]["city"]:null, "State"=>isset($historyEvent["location"])?$historyEvent["location"]["state"]:null, "Country"=>isset($historyEvent["location"])?$historyEvent["location"]["country"]:null, "Postal"=>isset($historyEvent["location"])?$historyEvent["location"]["zip"]:null, "ShipperCode"=>$historyEvent["status"], "EventCode"=>self::_lookupEventCode($historyEvent["status"], $historyEvent["status_details"])];
+            }
+            elseif (!$preTransitTransmitRecorded)
+            {
+                $events[] = ["Uid"=>$historyEvent["object_id"], "EventDate"=>strtotime($historyEvent["status_date"]), "Description"=>$historyEvent["status_details"], "City"=>isset($historyEvent["location"])?$historyEvent["location"]["city"]:null, "State"=>isset($historyEvent["location"])?$historyEvent["location"]["state"]:null, "Country"=>isset($historyEvent["location"])?$historyEvent["location"]["country"]:null, "Postal"=>isset($historyEvent["location"])?$historyEvent["location"]["zip"]:null, "ShipperCode"=>$historyEvent["status"], "EventCode"=>self::_lookupEventCode($historyEvent["status"], $historyEvent["status_details"])];
+                $preTransitTransmitRecorded = true;
+            }
+
             if ($historyEvent["status"] == "DELIVERED")
             {
                 $deliveryDate = strtotime($historyEvent["status_date"]);
             }
         }
-        return ["Status"=>$shipInfo["tracking_status"]["status"], "StatusDescription"=>$shipInfo["tracking_status"]["status_details"], "DeliveryDate"=>$deliveryDate, "Summary"=>$shipInfo["tracking_status"]["status_details"], "Events"=>$events];
+        return ["Status"=>$shipInfo["tracking_status"]["status"], "StatusDescription"=>$shipInfo["tracking_status"]["status_details"], "DeliveryDate"=>$deliveryDate, "Summary"=>$shipInfo["tracking_status"]["status_details"], "Events"=>$events, "ShipmentUid"=>$shipInfo["transaction"]];
     }
 
     function GetCarrierNames()
@@ -740,8 +752,8 @@ implements \DblEj\Commerce\Integration\IShipperExtension
     }
 
     public function GetShippingCost(
-        $service, $sourceName, $sourceCompany = null, $sourceAddress = null, $sourceCity = null, $sourceStateOrRegion = null, $sourceCountry = null, $sourcePostalCode = null,
-        $sourcePhone = null, $sourceEmail = null, $destName = null, $destAddress = null, $destCity = null, $destStateOrRegion = null, $destCountry = null, $destPostalCode = null, $destPhone = null, $destEmail = null,
+        $service, $sourceName, $sourceCompany = null, $sourceAddress = null, $sourceAddress2 = null, $sourceCity = null, $sourceStateOrRegion = null, $sourceCountry = null, $sourcePostalCode = null,
+        $sourcePhone = null, $sourceEmail = null, $destName = null, $destAddress = null, $destAddress2 = null, $destCity = null, $destStateOrRegion = null, $destCountry = null, $destPostalCode = null, $destPhone = null, $destEmail = null,
         $packageType = null, $packageQualifier = null, $weight = null, $packageWidth = null, $packageHeight = null, $packageLength = null, $packageGirth = null,
         $valueOfContents = null, $tracking = false, $insuranceAmount = null, $codAmount = null, $contentsType = null, $serviceFlags = []
     )
@@ -750,12 +762,12 @@ implements \DblEj\Commerce\Integration\IShipperExtension
         {
             $packageType = "";
         }
-        $rateNode = $this->_getRate($service, $sourceName, $sourceCompany, $sourceAddress, $sourceCity, $sourceStateOrRegion, $sourceCountry, $sourcePostalCode, $sourcePhone, $sourceEmail, $destName, $destAddress, $destCity, $destStateOrRegion, $destCountry, $destPostalCode, $destPhone, $destEmail, $packageType, $packageQualifier, $weight, $packageWidth, $packageHeight, $packageLength, $packageGirth, $valueOfContents, $tracking, $insuranceAmount, $codAmount, $contentsType, $serviceFlags);
+        $rateNode = $this->_getRate($service, $sourceName, $sourceCompany, $sourceAddress, $sourceAddress2, $sourceCity, $sourceStateOrRegion, $sourceCountry, $sourcePostalCode, $sourcePhone, $sourceEmail, $destName, $destAddress, $destAddress2, $destCity, $destStateOrRegion, $destCountry, $destPostalCode, $destPhone, $destEmail, $packageType, $packageQualifier, $weight, $packageWidth, $packageHeight, $packageLength, $packageGirth, $valueOfContents, $tracking, $insuranceAmount, $codAmount, $contentsType, $serviceFlags);
         return $rateNode["amount"];
     }
 
-    private function _getRate($service, $sourceName, $sourceCompany, $sourceAddress = null, $sourceCity = null, $sourceStateOrRegion = null, $sourceCountry = null, $sourcePostalCode = null,
-        $sourcePhone = null, $sourceEmail = null, $destName = null, $destAddress = null, $destCity = null, $destStateOrRegion = null, $destCountry = null, $destPostalCode = null,
+    private function _getRate($service, $sourceName, $sourceCompany, $sourceAddress = null, $sourceAddress2 = null, $sourceCity = null, $sourceStateOrRegion = null, $sourceCountry = null, $sourcePostalCode = null,
+        $sourcePhone = null, $sourceEmail = null, $destName = null, $destAddress = null, $destAddress2 = null, $destCity = null, $destStateOrRegion = null, $destCountry = null, $destPostalCode = null,
         $destPhone = null, $destEmail = null,
         $packageType = null, $packageQualifier = null, $weight = null, $packageWidth = null, $packageHeight = null, $packageLength = null, $packageGirth = null,
         $valueOfContents = null, $tracking = false, $insuranceAmount = null, $codAmount = null, $contentsType = null, $serviceFlags = [])
@@ -804,7 +816,7 @@ implements \DblEj\Commerce\Integration\IShipperExtension
         }
         if ($weight > 0)
         {
-            $shipmentObject = $this->_createShipment($service, $packageType, $packageLength, $packageWidth, $packageHeight, $weight, $customerAccountNumber, $sourceName, $sourceCompany, $sourceAddress, $sourceCity, $sourceStateOrRegion, $sourcePostalCode, $sourceCountry, $sourcePhone, $sourceEmail, $destName, $destAddress, $destCity, $destStateOrRegion, $destPostalCode, $destCountry, $destPhone, $destEmail, $valueOfContents, $serviceFlags);
+            $shipmentObject = $this->_createShipment($service, $packageType, $packageLength, $packageWidth, $packageHeight, $weight, $customerAccountNumber, $sourceName, $sourceCompany, $sourceAddress, $sourceAddress2, $sourceCity, $sourceStateOrRegion, $sourcePostalCode, $sourceCountry, $sourcePhone, $sourceEmail, $destName, $destAddress, $destAddress2, $destCity, $destStateOrRegion, $destPostalCode, $destCountry, $destPhone, $destEmail, $valueOfContents, $serviceFlags);
             $shipmentObject["address_to"]["phone"] = $destPhone;
             if ($testCustomsId)
             {
@@ -935,23 +947,17 @@ implements \DblEj\Commerce\Integration\IShipperExtension
 
         return $addy;
     }
-    private function _createShipment($service, $packageType, $packageLength, $packageWidth, $packageHeight, $weight, $customerAccountNumber, $sourceName, $sourceCompany, $sourceAddress, $sourceCity, $sourceStateOrRegion, $sourcePostalCode, $sourceCountry, $sourcePhone, $sourceEmail, $destName, $destAddress, $destCity, $destStateOrRegion, $destPostalCode, $destCountry, $destPhone, $destEmail, $valueOfContents, $serviceFlags)
+    private function _createShipment($service, $packageType, $packageLength, $packageWidth, $packageHeight, $weight, $customerAccountNumber, $sourceName, $sourceCompany, $sourceAddress, $sourceAddress2, $sourceCity, $sourceStateOrRegion, $sourcePostalCode, $sourceCountry, $sourcePhone, $sourceEmail, $destName, $destAddress, $destAddress2, $destCity, $destStateOrRegion, $destPostalCode, $destCountry, $destPhone, $destEmail, $valueOfContents, $serviceFlags)
     {
         if (strlen($destAddress) > 44)
         {
-            $destAddressLine1 = substr($destAddress, 0, 44); //labels were being cutoff when we did fifty so we reduced it to 44
-            $destAddressLine2 = substr($destAddress, 44, 50);
-        } else {
-            $destAddressLine1 = $destAddress;
-            $destAddressLine2 = null;
+            $destAddress = substr($destAddress, 0, 44); //labels were being cutoff when we did fifty so we reduced it to 44
+            $destAddress2 = substr($destAddress, 44, 50);
         }
         if (strlen($sourceAddress) > 44)
         {
-            $srcAddressLine1 = substr($sourceAddress, 0, 44); //labels were being cutoff when we did fifty so we reduced it to 44
-            $srcAddressLine2 = substr($sourceAddress, 44, 50);
-        } else {
-            $srcAddressLine1 = $sourceAddress;
-            $srcAddressLine2 = null;
+            $sourceAddress = substr($sourceAddress, 0, 44); //labels were being cutoff when we did fifty so we reduced it to 44
+            $sourceAddress2 = substr($sourceAddress, 44, 50);
         }
         if (strlen($sourceName) > 30)
         {
@@ -968,8 +974,8 @@ implements \DblEj\Commerce\Integration\IShipperExtension
 
         $shipmentObject =
         [
-            "address_to"=>$this->_createAddressObject($destName, null, $destAddressLine1, $destAddressLine2, $destCity, $destStateOrRegion, $destCountry, $destPostalCode, $destPhone, $destEmail),
-            "address_from"=>$this->_createAddressObject($destName, $sourceCompany, $srcAddressLine1, $srcAddressLine2, $sourceCity, $sourceStateOrRegion, $sourceCountry, $sourcePostalCode, $sourcePhone, $sourceEmail),
+            "address_to"=>$this->_createAddressObject($destName, null, $destAddress, $destAddress2, $destCity, $destStateOrRegion, $destCountry, $destPostalCode, $destPhone, $destEmail),
+            "address_from"=>$this->_createAddressObject($destName, $sourceCompany, $sourceAddress, $sourceAddress2, $sourceCity, $sourceStateOrRegion, $sourceCountry, $sourcePostalCode, $sourcePhone, $sourceEmail),
             "parcels"=>
             [
                 [
@@ -1022,37 +1028,67 @@ implements \DblEj\Commerce\Integration\IShipperExtension
         }
         return $shipmentObject;
     }
+
+    public function IsEventTimeLocal($carrierName)
+    {
+        return false; //i dont actually know, just setting to some default
+    }
+
     private static function _lookupEventCode($shippoStatus, $shippoDescription)
     {
         $code = 999;
         switch ($shippoStatus)
         {
             case "UNKNOWN":
+                if (stristr($shippoDescription, "Pre-Transit: Shipment information has been transmitted"))
+                {
+                    $code = 5;
+                }
                 break;
             case "TRANSIT":
-                if (stristr($shippoDescription, "out for delivery"))
+                if (stristr($shippoDescription, "shipment picked up"))
+                {
+                    $code = 50;
+                }
+                elseif (stristr($shippoDescription, "arrived at sort facility"))
+                {
+                    $code = 60;
+                }
+                elseif (stristr($shippoDescription, "arrived at delivery facility"))
+                {
+                    $code = 60;
+                }
+                elseif (stristr($shippoDescription, "departed facility"))
+                {
+                    $code = 65;
+                }
+                elseif (stristr($shippoDescription, "processed at"))
+                {
+                    $code = 80;
+                }
+                elseif (stristr($shippoDescription, "clearance processing"))
+                {
+                    $code = 80;
+                }
+                elseif (stristr($shippoDescription, "customs status"))
+                {
+                    $code = 85;
+                }
+                elseif (stristr($shippoDescription, "with delivery courier"))
                 {
                     $code = 100;
                 }
-                elseif (stristr($shippoDescription, "has been sorted"))
+                elseif (stristr($shippoDescription, "delivery attempted"))
                 {
-                    $code = 70;
+                    $code = 130;
                 }
-                elseif (stristr($shippoDescription, "arrived at the shipping partner"))
+                elseif (stristr($shippoDescription, "attempted delivery"))
                 {
-                    $code = 60;
+                    $code = 130;
                 }
-                elseif (stristr($shippoDescription, "been accepted at the USPS destination"))
+                elseif (stristr($shippoDescription, "missed delivery"))
                 {
-                    $code = 60;
-                }
-                elseif (stristr($shippoDescription, "has arrived at the post office"))
-                {
-                    $code = 60;
-                }
-                elseif (stristr($shippoDescription, "departed the shipping partner"))
-                {
-                    $code = 65;
+                    $code = 130;
                 }
                 else
                 {
@@ -1098,37 +1134,59 @@ implements \DblEj\Commerce\Integration\IShipperExtension
                     //4 = weight
                     //5 = origin country
                     //this is temporary pending a good functioniong standard interface for line items
-                    $testCustomsItem = ["description"=>substr($lineItem[3], 0, 49), "quantity"=>  floatval($lineItem[1]), "net_weight"=>round($lineItem[4]*$lineItem[1], 3), "mass_unit"=>"oz", "value_amount"=>round($lineItem[2]*$lineItem[1], 3), "value_currency"=>"USD", "origin_country"=>$lineItem[5], "sku_code"=>$lineItem[0]];
+                    $testCustomsItem = ["description"=>substr($lineItem[3], 0, 49), "quantity"=>  floatval($lineItem[1]), "net_weight"=>round($lineItem[4]*$lineItem[1], 3), "mass_unit"=>"oz", "value_amount"=>round($lineItem[2]*$lineItem[1], 2), "value_currency"=>"USD", "origin_country"=>$lineItem[5], "sku_code"=>$lineItem[0]];
                     $testCustomItemResponse = $this->callApi("customs/items", $testCustomsItem, \DblEj\Communication\Http\Request::HTTP_POST, true);
-                    $shippoItemIds[] = $testCustomItemResponse["object_id"];
+                    if (isset($testCustomItemResponse["object_id"]))
+                    {
+                        $shippoItemIds[] = $testCustomItemResponse["object_id"];
+                    } else {
+                        $errorLines = [];
+                        foreach ($testCustomItemResponse as $errorField=>$errorItems)
+                        {
+                            foreach ($errorItems as $errorItem)
+                            {
+                                $errorLines[] = "$errorField: $errorItem";
+                            }
+                        }
+                        if ($errorLines)
+                        {
+                            $errorMsg = implode(", ", $errorLines);
+                        } else {
+                            $errorMsg = "Unspecified error";
+                        }
+                        throw new \Wafl\Exceptions\Exception("Could not add an item to the customs declaration ($errorMsg).", E_WARNING, null, $errorMsg);
+                    }
                 }
             }
 
             $testCustomsDeclaration = $serviceFlags;
             $testCustomsDeclaration["items"] = $shippoItemIds;
-            $testCustomsResponse = $this->callApi("customs/declarations", $testCustomsDeclaration, \DblEj\Communication\Http\Request::HTTP_POST, true);
-        }
-        if ($lineItems && !isset($testCustomsResponse["object_id"]))
-        {
-            $errorMsg = "";
-            if (isset($testCustomsResponse["__all__"]))
+            if ($shippoItemIds)
             {
-                foreach ($testCustomsResponse["__all__"] as $errorNote)
+                $testCustomsResponse = $this->callApi("customs/declarations", $testCustomsDeclaration, \DblEj\Communication\Http\Request::HTTP_POST, true);
+                if (!isset($testCustomsResponse["object_id"]))
                 {
-                    if (stristr($errorNote, "certify") !== false && stristr($errorNote, "declaration") !== false)
+                    $errorMsg = "";
+                    if (isset($testCustomsResponse["__all__"]))
                     {
-                        $errorMsg = "You must type your name to certify the shipment's contents and value";
-                        break;
-                    } else {
-                        $errorMsg .= $errorNote;
+                        foreach ($testCustomsResponse["__all__"] as $errorNote)
+                        {
+                            if (stristr($errorNote, "certify") !== false && stristr($errorNote, "declaration") !== false)
+                            {
+                                $errorMsg = "You must type your name to certify the shipment's contents and value";
+                                break;
+                            } else {
+                                $errorMsg .= $errorNote;
+                            }
+                        }
                     }
+                    if (!$errorMsg)
+                    {
+                        $errorMsg = "Unspecified error";
+                    }
+                    throw new \Wafl\Exceptions\Exception("Could not create customs declaration due to: $errorMsg", E_WARNING, null, $errorMsg);
                 }
             }
-            if (!$errorMsg)
-            {
-                $errorMsg = "Error with customs declaration";
-            }
-            throw new \Wafl\Exceptions\Exception("Could not create customs declaration due to an error. $errorMsg", E_WARNING, null, $errorMsg);
         }
         return $testCustomsResponse?$testCustomsResponse["object_id"]:null;
     }
@@ -1149,8 +1207,8 @@ implements \DblEj\Commerce\Integration\IShipperExtension
         return [$scanFormResponse["object_id"], $scanFormResponse["documents"]];
     }
 
-    public function CreateShipment($service, $sourceName, $sourceCompany = null, $sourceAddress = null, $sourceCity = null, $sourceStateOrRegion = null, $sourceCountry = null, $sourcePostalCode = null,
-        $sourcePhone = null, $sourceEmail = null, $destName = null, $destAddress = null, $destCity = null, $destStateOrRegion = null, $destCountry = null, $destPostalCode = null,
+    public function CreateShipment($service, $sourceName, $sourceCompany = null, $sourceAddress = null, $sourceAddress2 = null, $sourceCity = null, $sourceStateOrRegion = null, $sourceCountry = null, $sourcePostalCode = null,
+        $sourcePhone = null, $sourceEmail = null, $destName = null, $destAddress = null, $destAddress2 = null, $destCity = null, $destStateOrRegion = null, $destCountry = null, $destPostalCode = null,
         $destPhone = null, $destEmail = null,
         $packageType = null, $packageQualifier = null, $weight = null, $packageWidth = null, $packageHeight = null, $packageLength = null, $packageGirth = null,
         $valueOfContents = null, $tracking = false, $insuranceAmount = null, $codAmount = null, $contentsType = null, $serviceFlags = [])
@@ -1177,7 +1235,7 @@ implements \DblEj\Commerce\Integration\IShipperExtension
             throw new \Wafl\Exceptions\Exception("Package weight cannot be 0", E_WARNING, null, "Package weight cannot be 0");
         }
 
-        $rate = $this->_getRate($service, $sourceName, $sourceCompany, $sourceAddress, $sourceCity, $sourceStateOrRegion, $sourceCountry, $sourcePostalCode, $sourcePhone, $sourceEmail, $destName, $destAddress, $destCity, $destStateOrRegion, $destCountry, $destPostalCode, $destPhone, $destEmail, $packageType, $packageQualifier, $weight, $packageWidth, $packageHeight, $packageLength, $packageGirth, $valueOfContents, $tracking, $insuranceAmount, $codAmount, $contentsType, $serviceFlags);
+        $rate = $this->_getRate($service, $sourceName, $sourceCompany, $sourceAddress, $sourceAddress2, $sourceCity, $sourceStateOrRegion, $sourceCountry, $sourcePostalCode, $sourcePhone, $sourceEmail, $destName, $destAddress, $destAddress2, $destCity, $destStateOrRegion, $destCountry, $destPostalCode, $destPhone, $destEmail, $packageType, $packageQualifier, $weight, $packageWidth, $packageHeight, $packageLength, $packageGirth, $valueOfContents, $tracking, $insuranceAmount, $codAmount, $contentsType, $serviceFlags);
         if ($rate)
         {
 
