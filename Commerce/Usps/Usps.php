@@ -42,6 +42,12 @@ implements \DblEj\Commerce\Integration\IShipperExtension, \DblEj\Commerce\Integr
         $this->_apiKey = $keyOrSignature;
     }
 
+    public function IsEventTimeLocal($carrierName)
+    {
+        return true; //i dont actually know, just setting to some default
+    }
+
+
     /**
      * @param string $trackingid
      * @return ShipmentStatus
@@ -261,6 +267,14 @@ implements \DblEj\Commerce\Integration\IShipperExtension, \DblEj\Commerce\Integr
                             $verificationResultText = "There appears to be multiple results for this address.  Did you enter the correct apartment, suite, or unit number?";
                             $specificAddress = false;
                         }
+
+                        //usps ignores the first line and fills the second address line if there is only one line
+                        if ($correctedAddress2 && !$correctedAddress1)
+                        {
+                            $correctedAddress1 = $correctedAddress2;
+                            $correctedAddress2 = "";
+                        }
+
                         $returnValue = ["Company"=>$correctedCompany, "Address1"=>$correctedAddress1, "Address2"=>$correctedAddress2,
                                         "City"=>$correctedCity, "RegionCode"=>$correctedState, "PostalCode"=>"$correctedZip5-$correctedZip4",
                                         "Notes"=>$verificationResultText, "IsOnlyMatch"=>$specificAddress, "CountryCode"=>"US"];
@@ -467,8 +481,8 @@ implements \DblEj\Commerce\Integration\IShipperExtension, \DblEj\Commerce\Integr
         return ["Options"=>$flags, "AdvancedOptions"=>[]];
     }
     public function GetShippingCost(
-        $service, $sourceName, $sourceCompany = null, $sourceAddress = null, $sourceCity = null, $sourceStateOrRegion = null, $sourceCountry = null, $sourcePostalCode = null,
-        $sourcePhone = null, $sourceEmail = null, $destName = null, $destAddress = null, $destCity = null, $destStateOrRegion = null, $destCountry = null, $destPostalCode = null, $destPhone = null, $destEmail = null,
+        $service, $sourceName, $sourceCompany = null, $sourceAddress = null, $sourceAddress2 = null, $sourceCity = null, $sourceStateOrRegion = null, $sourceCountry = null, $sourcePostalCode = null,
+        $sourcePhone = null, $sourceEmail = null, $destName = null, $destAddress = null, $destAddress2 = null, $destCity = null, $destStateOrRegion = null, $destCountry = null, $destPostalCode = null, $destPhone = null, $destEmail = null,
         $packageType = null, $packageQualifier = null, $weight = null, $packageWidth = null, $packageHeight = null, $packageLength = null, $packageGirth = null,
         $valueOfContents = null, $tracking = false, $insuranceAmount = null, $codAmount = null, $contentsType = null, $serviceFlags = []
     )
@@ -674,7 +688,7 @@ implements \DblEj\Commerce\Integration\IShipperExtension, \DblEj\Commerce\Integr
     }
 
 
-    public function CreateShipment($service, $sourceName, $sourceCompany = null, $sourceAddress = null, $sourceCity = null, $sourceStateOrRegion = null, $sourceCountry = null, $sourcePostalCode = null,
+    public function CreateShipment($service, $sourceName, $sourceCompany = null, $sourceAddress = null, $sourceAddress2 = null, $sourceCity = null, $sourceStateOrRegion = null, $sourceCountry = null, $sourcePostalCode = null,
         $sourcePhone = null, $sourceEmail = null, $destName = null, $destAddress = null, $destCity = null, $destStateOrRegion = null, $destCountry = null, $destPostalCode = null, $destPhone = null, $destEmail = null,
         $packageType = null, $packageQualifier = null, $weight = null, $packageWidth = null, $packageHeight = null, $packageLength = null, $packageGirth = null,
         $valueOfContents = null, $tracking = false, $insuranceAmount = null, $codAmount = null, $contentsType = null, $serviceFlags = [])
