@@ -100,12 +100,19 @@ implements \DblEj\Commerce\Integration\ISellerAggregatorExtension
         {
             $args["min_last_modified"] = $serviceArgs["min_last_modified"];
         }
-        $status = $onlyOpen?"open":"all";
-        $rawOrders = $this->callApi("shops/$this->_etsyShopName/receipts/$status", $args);
+        if ($onlyOpen)
+        {
+            $rawOrders = $this->callApi("shops/$this->_etsyShopName/receipts/open", $args);
+        } else {
+            $rawOrders = $this->callApi("shops/$this->_etsyShopName/receipts", $args);
+        }
         $orders = [];
         foreach ($rawOrders["results"] as $rawOrder)
         {
-            $orders[] = $this->_createOrderFromReceipt($rawOrder);
+            if (!$onlyOpen || $rawOrder["was_paid"])
+            {
+                $orders[] = $this->_createOrderFromReceipt($rawOrder);
+            }
         }
 
         return $orders;
@@ -192,6 +199,7 @@ implements \DblEj\Commerce\Integration\ISellerAggregatorExtension
         }
         $args = [];
         $args["was_shipped"] = true;
+
         $this->callApi("receipts/$uid", $args, true, \OAUTH_HTTP_METHOD_PUT);
     }
 
@@ -199,9 +207,34 @@ implements \DblEj\Commerce\Integration\ISellerAggregatorExtension
     {
         throw new \Wafl\Exceptions\Exception("Cannot void order.  Etsy API does not support voiding orders", E_WARNING, null, "The Etsy API does not currently support voiding orders.  You will need to cancel the order manually at Etsy.com");
     }
+
+    public function GetSupportedOperations()
+    {
+        return
+        [
+            "Refund"=>false,
+            "AddItemToOrder"=>false,
+            "GetShippingMethods"=>true,
+            "GetListingImageUrl"=>true,
+            "VoidOrder"=>false,
+            "MarkOrderShipped"=>true,
+            "AddShipment"=>true,
+            "GetOrders"=>true,
+            "GetOrder"=>true,
+            "CreateListing"=>true,
+            "FindListing"=>true,
+        ];
+    }
+
+    public function IsOperationSupported($operationName)
+    {
+        $supportedOps = $this->GetSupportedOperations();
+        return isset($supportedOps[$operationName])?$supportedOps[$operationName]:false;
+    }
     public function Refund($uid, $refundAmount, $notes="")
     {
         throw new \Wafl\Exceptions\Exception("Cannot issue refund.  Etsy API does not support refunds", E_WARNING, null, "The Etsy API does not currently support refunds.  You will need to do this manually at Etsy.com");
+        //need to return a refund id of some sort
     }
     public function AddItemToOrder($uid, $productCode, $addQty, $priceEach)
     {
