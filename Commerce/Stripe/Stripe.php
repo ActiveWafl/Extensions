@@ -626,7 +626,7 @@ implements \DblEj\Commerce\Integration\IPaymentGatewayExtension
 
     public function Get_RefundTimeLimit()
     {
-        return 60 * 86400;
+        return 180 * 86400;
     }
 
     /**
