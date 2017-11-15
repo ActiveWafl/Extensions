@@ -1209,7 +1209,25 @@ implements \DblEj\Commerce\Integration\IShipperExtension
 
         if (!isset($scanFormResponse["form_url"]))
         {
-            throw new \Exception("Could not get scan form. ". print_r($scanFormResponse, true).(isset($scanFormResponse["message"])?$scanFormResponse["message"]:""));
+            if (isset($scanFormResponse["error"]) && isset($scanFormResponse["code"]))
+            {
+                switch ($scanFormResponse["code"])
+                {
+                    case "SCAN_FORM.BATCH.NOT_PURCHASED":
+                        $errorMessage = "Some of the specified shipments have not been paid for (or were not created using EasyPost)";
+                        break;
+                    case "SCAN_FORM.SHIPMENTS.INVALID":
+                        $errorMessage = "The from address was not the same for all of the shipments";
+                        break;
+                    default:
+                        $errorMessage = isset($scanFormResponse["error"]["message"])?$scanFormResponse["error"]["message"]:null;
+                }
+            }
+            if (!$errorMessage)
+            {
+                $errorMessage = isset($scanFormResponse["message"])?$scanFormResponse["message"]:"";
+            }
+            throw new \Wafl\Exceptions\Exception("Could not get scan form. ". print_r($scanFormResponse, true).(isset($scanFormResponse["message"])?$scanFormResponse["message"]:""), E_ERROR, null, "Error creating manifest: $errorMessage");
         }
         return [$scanFormResponse["id"], [$scanFormResponse["form_url"]]];
     }
