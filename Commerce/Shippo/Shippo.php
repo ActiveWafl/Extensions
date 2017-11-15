@@ -975,7 +975,7 @@ implements \DblEj\Commerce\Integration\IShipperExtension
         $shipmentObject =
         [
             "address_to"=>$this->_createAddressObject($destName, null, $destAddress, $destAddress2, $destCity, $destStateOrRegion, $destCountry, $destPostalCode, $destPhone, $destEmail),
-            "address_from"=>$this->_createAddressObject($destName, $sourceCompany, $sourceAddress, $sourceAddress2, $sourceCity, $sourceStateOrRegion, $sourceCountry, $sourcePostalCode, $sourcePhone, $sourceEmail),
+            "address_from"=>$this->_createAddressObject($sourceName, $sourceCompany, $sourceAddress, $sourceAddress2, $sourceCity, $sourceStateOrRegion, $sourceCountry, $sourcePostalCode, $sourcePhone, $sourceEmail),
             "parcels"=>
             [
                 [
