@@ -1,4 +1,4 @@
-<?php 
+<?php
 function smarty_modifier_datetime_format($timestamp, $format = "%b %e, %Y &nbsp; %l:%M %p")
 {
     $localTimeString = strftime($format, $timestamp);

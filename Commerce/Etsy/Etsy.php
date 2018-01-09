@@ -26,18 +26,40 @@ implements \DblEj\Commerce\Integration\ISellerAggregatorExtension
         }
     }
 
-    public function FindListings($titleSearch)
+    public function FindListings($titleSearch, $activeOnly = true)
     {
-        //this was thrown together quickly, only checking active listings
+        //this was thrown together quickly, not standardized
         $args = ["include_private"=>true, "keywords"=>$titleSearch];
         $apiResult = $this->callApi("shops/$this->_etsyShopName/listings/active", $args);
-
         if (isset($apiResult["results"]))
         {
-            return $apiResult["results"];
+            $results = $apiResult["results"];
         } else {
-            return null;
+            $results = [];
         }
+
+        if (!$activeOnly)
+        {
+            $apiResult = $this->callApi("shops/$this->_etsyShopName/listings/inactive", $args);
+            if (isset($apiResult["results"]))
+            {
+                foreach ($apiResult["results"] as $result)
+                {
+                    $results[] = $result;
+                }
+            }
+
+            $apiResult = $this->callApi("shops/$this->_etsyShopName/listings/expired", $args);
+            if (isset($apiResult["results"]))
+            {
+                foreach ($apiResult["results"] as $result)
+                {
+                    $results[] = $result;
+                }
+            }
+        }
+
+        return $results;
     }
 
     public function CreateListing($title, $description, $price, $quantity, $imageFiles = [], $category = null, $tags = [], $manufacturer = null, $providerArgs = [])

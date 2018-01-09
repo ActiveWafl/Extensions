@@ -199,6 +199,7 @@ implements \DblEj\Commerce\Integration\IShipperExtension
         $lastStatusMessage = null;
         $lastHistoryEvent = null;
         $shipStatus = null;
+        $shipUid = null;
         if (!isset($shipInfo["error"]))
         {
             $shipStatus = $shipInfo["status"];
@@ -234,12 +235,13 @@ implements \DblEj\Commerce\Integration\IShipperExtension
                     $deliveryDate = $newEventDate;
                 }
             }
-        }
-        if (isset($shipInfo["shipment_id"]))
-        {
-            $shipUid = $shipInfo["shipment_id"];
-        } else {
-            $shipUid = $shipInfo["carrier"].$shipInfo["tracking_code"];
+
+            if (isset($shipInfo["shipment_id"]))
+            {
+                $shipUid = $shipInfo["shipment_id"];
+            } else {
+                $shipUid = $shipInfo["carrier"].$shipInfo["tracking_code"];
+            }
         }
         return ["Status"=>$shipStatus, "StatusDescription"=>$lastStatusMessage, "DeliveryDate"=>$deliveryDate, "Summary"=>$lastStatusMessage, "Events"=>$events, "ShipmentUid"=>$shipUid];
     }

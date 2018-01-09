@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project name="EasyPost Wafl Extension" default="Build">
     <property name="ExtensionName" value="EasyPost"/>
-    <property name="ExtensionVersion" value="0.0.13" />
+    <property name="ExtensionVersion" value="0.0.14" />
     
     <condition property="is_windows">
         <os family="windows" />

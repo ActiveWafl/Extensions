@@ -162,19 +162,11 @@ class Index implements \DblEj\Data\IIndex
 
                             if (stripos($groupSearchString, "[") === false)
                             {
-                                $fieldValues = explode(" ", $groupSearchString);
-                                foreach ($fieldValues as $fieldValue)
+                                if ($excProximity)
                                 {
-                                    $fieldValue = trim($fieldValue);
-                                    if ($fieldValue)
-                                    {
-                                        if ($excProximity)
-                                        {
-                                            $innerGroupQuery .= "$fieldName:\"".  str_replace("\"", "\\\"", $fieldValue)."\"~$excProximity\r\n";
-                                        } else {
-                                            $innerGroupQuery .= "$fieldName:".(str_replace("\"", "\\\"", $fieldValue))."\r\n";
-                                        }
-                                    }
+                                    $innerGroupQuery .= "$fieldName:\"".  str_replace("\"", "\\\"", $groupSearchString)."\"~$excProximity\r\n";
+                                } else {
+                                    $innerGroupQuery .= "$fieldName:".(str_replace("\"", "\\\"", $groupSearchString))."\r\n";
                                 }
                             } else {
                                 if ($excProximity)
@@ -206,26 +198,24 @@ class Index implements \DblEj\Data\IIndex
 
                         if (stripos($searchString, "[") === false)
                         {
-                            $fieldValues = explode(" ", $searchString);
-                            foreach ($fieldValues as $fieldValue)
+                            //SearchByWord is currently the default (hardcoded) way of doing things.
+                            //Use the commented code below to change that.
+                            //We want to move to serahcing the entire phrase and let solr handle all that work
+                            //so that phrasing works.
+                            //Using SearchByWord breaks phrasing but it reduces all the false results.
+
+                            if ($excProximity)
                             {
-                                $fieldValue = trim($fieldValue);
-                                if ($fieldValue)
-                                {
-                                    if ($excProximity)
-                                    {
-                                        $queriesByFieldName[$fieldName] .= "$fieldName:\"".  str_replace("\"", "\\\"", $fieldValue)."\"~$excProximity\r\n";
-                                    } else {
-                                        $queriesByFieldName[$fieldName] .= "$fieldName:".(str_replace("\"", "\\\"", $fieldValue))."\r\n";
-                                    }
-                                }
+                                $queriesByFieldName[$fieldName] .= "$fieldName:\"".  str_replace("\"", "\\\"", $searchString)."\"~$excProximity\r\n";
+                            } else {
+                                $queriesByFieldName[$fieldName] .= "$fieldName:\"".(str_replace("\"", "\\\"", $searchString))."\"\r\n";
                             }
                         } else {
                             if ($excProximity)
                             {
                                 $queriesByFieldName[$fieldName] .= "$fieldName:\"".  str_replace("\"", "\\\"", $searchString)."\"~$excProximity\r\n";
                             } else {
-                                $queriesByFieldName[$fieldName] .= "$fieldName:".(str_replace("\"", "\\\"", $searchString))."\r\n";
+                                $queriesByFieldName[$fieldName] .= "$fieldName:\"".(str_replace("\"", "\\\"", $searchString))."\"\r\n";
                             }
                         }
                     }
@@ -285,19 +275,11 @@ class Index implements \DblEj\Data\IIndex
         } else {
             if (stripos($searchPhrase, "[") === false)
             {
-                $fieldValues = explode(" ", $searchPhrase);
-                foreach ($fieldValues as $fieldValue)
+                if ($nonexcProximity)
                 {
-                    $fieldValue = trim($fieldValue);
-                    if ($fieldValue)
-                    {
-                        if ($nonexcProximity)
-                        {
-                            $queryString = "($fieldToSearchOn:\"".str_replace("\"", "\\\"", $fieldValue)."\"~$nonexcProximity)\r\n";
-                        } else {
-                            $queryString = "($fieldToSearchOn:".(str_replace("\"", "\\\"", $fieldValue)).")\r\n";
-                        }
-                    }
+                    $queryString = "($fieldToSearchOn:\"".str_replace("\"", "\\\"", $searchPhrase)."\"~$nonexcProximity)\r\n";
+                } else {
+                    $queryString = "($fieldToSearchOn:".(str_replace("\"", "\\\"", $searchPhrase)).")\r\n";
                 }
             } else {
                 if ($nonexcProximity)

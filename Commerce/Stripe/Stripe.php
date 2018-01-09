@@ -101,7 +101,7 @@ implements \DblEj\Commerce\Integration\IPaymentGatewayExtension
             {
                 if ($ssnLastFour != substr($taxId, strlen($taxId) - 4))
                 {
-                    throw new \Wafl\Exceptions\Exception("Last 4 of SS on payout account doesnt match sole proprieter tax id", E_ERROR, null, "For a sole proprietership, the last four of the owner's social security number must match the last four of the tax id.");
+                    throw new \Wafl\Exceptions\Exception("SSN Last 4 doesnt match sole proprietor tax id", E_ERROR, null, "For a sole proprietorship, the last four of the owner's social security number must match the last four of the tax id.");
                 }
                 $accountArray["legal_entity"]["business_tax_id"] = null;
                 $accountArray["legal_entity"]["personal_id_number"] = $taxId;
@@ -1043,6 +1043,10 @@ implements \DblEj\Commerce\Integration\IPaymentGatewayExtension
                     $saveResult = new \DblEj\Integration\Ecommerce\SaveCardResult("", $ex->getMessage()." ".$ex->getTraceAsString(), "Error saving account", $errMsg);
                 }
             }
+            elseif ($ex->getStripeParam() == "legal_entity[personal_id_number]")
+            {
+                $saveResult = new \DblEj\Integration\Ecommerce\SaveCardResult("", $ex->getMessage()." ".$ex->getTraceAsString(), "Error saving account", "Invalid personal tax id. ".$ex->getMessage());
+            }
             else
             {
                 $saveResult = new \DblEj\Integration\Ecommerce\SaveCardResult("", $ex->getMessage()." ".$ex->getTraceAsString(), "Error saving account", "Unknown error: ".$ex->getMessage());
@@ -1057,8 +1061,10 @@ implements \DblEj\Commerce\Integration\IPaymentGatewayExtension
 
         } catch (\Stripe\Error\Base $ex) {
             $saveResult = new \DblEj\Integration\Ecommerce\SaveCardResult("", $ex->getMessage()." ".$ex->getTraceAsString(), "Error saving account", "Unknown error.".$ex->getMessage());
+        } catch (\DblEj\System\Exception $ex) {
+            $saveResult = new \DblEj\Integration\Ecommerce\SaveCardResult("", $ex->getMessage()." ".$ex->getTraceAsString(), "Error saving account", $ex->Get_PublicDetails());
         } catch (\Exception $ex) {
-            $saveResult = new \DblEj\Integration\Ecommerce\SaveCardResult("", $ex->getMessage()." ".$ex->getTraceAsString(), "Error saving account", "Unknown error.".$ex->getMessage());
+            $saveResult = new \DblEj\Integration\Ecommerce\SaveCardResult("", $ex->getMessage()." ".$ex->getTraceAsString(), "Error saving account", $ex->getMessage());
         }
 
         return $saveResult;

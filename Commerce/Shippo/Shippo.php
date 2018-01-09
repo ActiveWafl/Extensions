@@ -184,16 +184,34 @@ implements \DblEj\Commerce\Integration\IShipperExtension
 
         $preTransitTransmitRecorded = false;
 
+//        if (!$shipDate)
+//        {
+//            if (isset($shipInfo["tracking_status"]) && isset($shipInfo["tracking_status"]["object_created"]))
+//            {
+//                $shipDate = strtotime($shipInfo["tracking_status"]["object_created"]);
+//            }
+//        }
+
         foreach ($shipInfo["tracking_history"] as $historyEvent)
         {
             $isTransitTransmit = stristr($historyEvent["status_details"], "Pre-Transit: Shipment information has been transmitted") !== false;
+            if (isset($historyEvent["status_date"]) && $historyEvent["status_date"] && (strtolower(trim($historyEvent["status_date"])) != "null"))
+            {
+                $eventDate = strtotime($historyEvent["status_date"]);
+            } else {
+                $eventDate = $shipDate;
+            }
+            if (!$eventDate)
+            {
+                $eventDate = $shipDate;
+            }
             if (!$isTransitTransmit)
             {
-                $events[] = ["Uid"=>$historyEvent["object_id"], "EventDate"=>strtotime($historyEvent["status_date"]), "Description"=>$historyEvent["status_details"], "City"=>isset($historyEvent["location"])?$historyEvent["location"]["city"]:null, "State"=>isset($historyEvent["location"])?$historyEvent["location"]["state"]:null, "Country"=>isset($historyEvent["location"])?$historyEvent["location"]["country"]:null, "Postal"=>isset($historyEvent["location"])?$historyEvent["location"]["zip"]:null, "ShipperCode"=>$historyEvent["status"], "EventCode"=>self::_lookupEventCode($historyEvent["status"], $historyEvent["status_details"])];
+                $events[] = ["Uid"=>$historyEvent["status"].$eventDate.".$trackingid", "EventDate"=>$eventDate, "Description"=>$historyEvent["status_details"], "City"=>isset($historyEvent["location"])?$historyEvent["location"]["city"]:null, "State"=>isset($historyEvent["location"])?$historyEvent["location"]["state"]:null, "Country"=>isset($historyEvent["location"])?$historyEvent["location"]["country"]:null, "Postal"=>isset($historyEvent["location"])?$historyEvent["location"]["zip"]:null, "ShipperCode"=>$historyEvent["status"], "EventCode"=>self::_lookupEventCode($historyEvent["status"], $historyEvent["status_details"])];
             }
             elseif (!$preTransitTransmitRecorded)
             {
-                $events[] = ["Uid"=>$historyEvent["object_id"], "EventDate"=>strtotime($historyEvent["status_date"]), "Description"=>$historyEvent["status_details"], "City"=>isset($historyEvent["location"])?$historyEvent["location"]["city"]:null, "State"=>isset($historyEvent["location"])?$historyEvent["location"]["state"]:null, "Country"=>isset($historyEvent["location"])?$historyEvent["location"]["country"]:null, "Postal"=>isset($historyEvent["location"])?$historyEvent["location"]["zip"]:null, "ShipperCode"=>$historyEvent["status"], "EventCode"=>self::_lookupEventCode($historyEvent["status"], $historyEvent["status_details"])];
+                $events[] = ["Uid"=>$historyEvent["status"].$eventDate.".$trackingid", "EventDate"=>$eventDate, "Description"=>$historyEvent["status_details"], "City"=>isset($historyEvent["location"])?$historyEvent["location"]["city"]:null, "State"=>isset($historyEvent["location"])?$historyEvent["location"]["state"]:null, "Country"=>isset($historyEvent["location"])?$historyEvent["location"]["country"]:null, "Postal"=>isset($historyEvent["location"])?$historyEvent["location"]["zip"]:null, "ShipperCode"=>$historyEvent["status"], "EventCode"=>self::_lookupEventCode($historyEvent["status"], $historyEvent["status_details"])];
                 $preTransitTransmitRecorded = true;
             }
 
@@ -1163,6 +1181,12 @@ implements \DblEj\Commerce\Integration\IShipperExtension
             $testCustomsDeclaration["items"] = $shippoItemIds;
             if ($shippoItemIds)
             {
+
+                if (isset($testCustomsDeclaration["signature_confirmation"]) && $testCustomsDeclaration["signature_confirmation"] == "Unset")
+                {
+                    unset($testCustomsDeclaration["signature_confirmation"]);
+                }
+
                 $testCustomsResponse = $this->callApi("customs/declarations", $testCustomsDeclaration, \DblEj\Communication\Http\Request::HTTP_POST, true);
                 if (!isset($testCustomsResponse["object_id"]))
                 {
