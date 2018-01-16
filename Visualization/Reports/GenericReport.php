@@ -21,9 +21,18 @@ class GenericReport extends \Wafl\Extensions\Visualization\Reports\TableReport
         return $this->_allInputs;
     }
 
+    public function GetFields()
+    {
+        return [];
+    }
     public function GetInputAllowedValues($inputId, $otherInputValue = null)
     {
         return $this->_inputAllowedValues;
+    }
+
+    public function GetInputDefaultValue($inputId, $setInputValues = null)
+    {
+        return "";
     }
 
     public function GetReportData($inputValues)

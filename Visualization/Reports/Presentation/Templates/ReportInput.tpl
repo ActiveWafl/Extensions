@@ -38,13 +38,14 @@
                                         {if $REPORT->GetInputAllowedValues($REPORT_INPUT_ID, $SET_REPORT_INPUTS)|count > 0}
                                             <select name="{$REPORT_INPUT_ID}">
                                             {foreach $REPORT->GetInputAllowedValues($REPORT_INPUT_ID, $SET_REPORT_INPUTS) as $ALLOWED_VALUE_ID=>$ALLOWED_VALUE_LABEL}
-                                                <option value="{$ALLOWED_VALUE_ID}">{$ALLOWED_VALUE_LABEL}</option>
+                                                <option value="{$ALLOWED_VALUE_ID}" {if $REPORT->GetInputDefaultValue($REPORT_INPUT_ID, $SET_REPORT_INPUTS) == $ALLOWED_VALUE_ID}selected{/if}>{$ALLOWED_VALUE_LABEL}</option>
                                             {/foreach}
                                             </select>
                                         {elseif $REPORT->GetInputDataType($REPORT_INPUT_ID) == "Date"}
-                                            {ui PostName="$REPORT_INPUT_ID" name="DatePicker"}
+                                            {ui PostName="$REPORT_INPUT_ID" name="DatePicker" Value=$REPORT->GetInputDefaultValue($REPORT_INPUT_ID, $SET_REPORT_INPUTS)}
                                         {else}
-                                            <input type="text" name="{$REPORT_INPUT_ID}" />
+                                            <input style="width: 100%;" type="text" name="{$REPORT_INPUT_ID}" value="{$REPORT->GetInputDefaultValue($REPORT_INPUT_ID, $SET_REPORT_INPUTS)}" />
+
                                         {/if}
                                     {/if}
                                 </td>

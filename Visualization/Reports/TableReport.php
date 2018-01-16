@@ -49,6 +49,11 @@ implements IReport
         return null;
     }
 
+    public function GetInputDefaultValue($inputId, $setInputValues = null)
+    {
+        return "";
+    }
+
     public function GetFieldDataType($fieldName)
     {
         return $this->GetField($fieldName)["Type"];
