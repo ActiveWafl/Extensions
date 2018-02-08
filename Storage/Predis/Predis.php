@@ -18,6 +18,7 @@ class Predis extends ExtensionBase implements IDataStore
 	private $_serverPort = 6379;
 	private $_amReady=false;
     private $_storeId;
+    private $_db = 15;
     private $_timeout = 3600;
 	public function Initialize(\DblEj\Application\IApplication $app)
 	{
@@ -27,7 +28,7 @@ class Predis extends ExtensionBase implements IDataStore
 		$this->_predis = new \Predis\Client(array(
 							'host'     => $this->_serverAddress,
 							'port'     => $this->_serverPort,
-							'database' => 15));
+							'database' => $this->_db));
 	}
 
 	public function PostInit()
@@ -60,7 +61,8 @@ class Predis extends ExtensionBase implements IDataStore
 			"ServerAddress",
 			"ServerPort",
             "StoreId",
-            "Timeout");
+            "Timeout",
+            "DbId");
 	}
 
 	protected function ConfirmedConfigure($settingName, $settingValue)
@@ -75,6 +77,9 @@ class Predis extends ExtensionBase implements IDataStore
 				break;
 			case "StoreId":
 				$this->_storeId = $settingValue;
+				break;
+			case "DbId":
+				$this->_db = $settingValue;
 				break;
 			case "Timeout":
 				$this->_timeout = $settingValue;
@@ -147,6 +152,9 @@ class Predis extends ExtensionBase implements IDataStore
 				break;
 			case "StoreId":
                 return "DefaultStore";
+				break;
+			case "DbId":
+                return "15";
 				break;
 			case "Timeout":
                 return 3600;
