@@ -5,6 +5,7 @@
     <div style="text-align: center;">
         <button onclick="window.print();">Print</button>
         <a class="Button" href="?{$QUERY_STRING}&amp;Format=csv">Download .csv</a>
+        <a class="Button" href="?{$QUERY_STRING}&amp;Format=txt">Download .txt</a>
         <a href="?" class="Button">Back to Reports</a>
     </div>
 {/block}

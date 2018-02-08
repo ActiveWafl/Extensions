@@ -61,6 +61,7 @@
                             <input id="ReportFormatInput" name="Format" type="hidden" value="display" />
                             <button onclick="$('ReportFormatInput').SetValue('display');">View / Print</button>
                             <button onclick="$('ReportFormatInput').SetValue('csv');">Download .csv</button>
+                            <button onclick="$('ReportFormatInput').SetValue('txt');">Download .txt</button>
                         {else}
                             <button>Submit</button>
                         {/if}

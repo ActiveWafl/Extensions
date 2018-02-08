@@ -77,6 +77,13 @@ extends ControllerBase
             $headers = new \DblEj\Communication\Http\Headers("text/csv");
             $headers->Set_ForceDownload(true, $report->Get_Title().".csv");
             return new \DblEj\Communication\Http\Response($csv, \DblEj\Communication\Http\Response::HTTP_OK_200, $headers, \DblEj\Communication\Http\Response::CONTENT_TYPE_PRINTABLE_OUTPUT);
+        } elseif ($format == "txt")
+        {
+            $reportData = $report->GetFormattedReportData($allInputs);
+            $csv .= $this->_arrayToCsv($reportData);
+            $headers = new \DblEj\Communication\Http\Headers("text/plain");
+            $headers->Set_ForceDownload(true, $report->Get_Title().".txt");
+            return new \DblEj\Communication\Http\Response($csv, \DblEj\Communication\Http\Response::HTTP_OK_200, $headers, \DblEj\Communication\Http\Response::CONTENT_TYPE_PRINTABLE_OUTPUT);
         } else {
             return $this->createResponseFromSitePage($sitePage, $options);
         }
@@ -86,7 +93,6 @@ extends ControllerBase
     {
         $csv = "";
 
-        $firstElement = reset($array);
         $skipFrontString = "";
         if ($skipFields)
         {
@@ -95,18 +101,32 @@ extends ControllerBase
                 $skipFrontString .= "\t";
             }
         }
-        if (is_array($firstElement))
+
+        $anyElemIsArray = false;
+        foreach ($array as $arrayElem)
+        {
+            if (is_array($arrayElem))
+            {
+                $anyElemIsArray = true;
+                break;
+            }
+        }
+
+        if ($anyElemIsArray)
         {
             foreach ($array as $blockLabel=>$subArray)
             {
                 if (is_array($subArray))
                 {
-                    $csv .= $this->_arrayToCsv($subArray, $skipFields);
+                    $csv .= $skipFrontString . $this->_arrayToCsv($subArray, $skipFields);
+                } else {
+                    $csv .= $subArray . "\t";
                 }
             }
         } else {
             $csv .= $skipFrontString.implode("\t", $array)."\n";
         }
+
         return $csv;
     }
     public function AddDefaultActionTemplateVariables($varName, $varVal)
