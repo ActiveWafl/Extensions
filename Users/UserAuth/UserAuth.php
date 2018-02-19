@@ -44,47 +44,47 @@ class UserAuth extends ExtensionBase implements \DblEj\Authentication\Integratio
 	{
 		if (AM_WEBPAGE)
 		{
-			if (self::$_userClass)
-			{
-				self::$_initializedWithCustomUserClass = true;
-			}
-			else
-			{
-				self::$_userClass = "\\Wafl\\Extensions\\Users\\UserAuth\\FunctionalModel\\User";
-			}
+            if (self::$_userClass)
+            {
+                self::$_initializedWithCustomUserClass = true;
+            }
+            else
+            {
+                self::$_userClass = "\\Wafl\\Extensions\\Users\\UserAuth\\FunctionalModel\\User";
+            }
 
             if (!method_exists(self::$_userClass, "GetGuestUser"))
             {
                 throw new \Exception("Your custom user class must implement the static method ".self::$_userClass."::GetGuestUser");
             }
-			if (self::$_userGroupClass)
-			{
-				self::$_initializedWithCustomUserGroupClass = true;
-			}
-			else
-			{
-				self::$_userGroupClass = "\\Wafl\\Extensions\\Users\\UserAuth\\FunctionalModel\\UserGroup";
-			}
-			if (self::$_sessionClass)
-			{
-				self::$_initializedWithCustomSessionClass = true;
-			}
-			else
-			{
-				self::$_sessionClass = "\\Wafl\\Users\\FunctionalModel\\Session";
-			}
+            if (self::$_userGroupClass)
+            {
+                self::$_initializedWithCustomUserGroupClass = true;
+            }
+            else
+            {
+                self::$_userGroupClass = "\\Wafl\\Extensions\\Users\\UserAuth\\FunctionalModel\\UserGroup";
+            }
+            if (self::$_sessionClass)
+            {
+                self::$_initializedWithCustomSessionClass = true;
+            }
+            else
+            {
+                self::$_sessionClass = "\\Wafl\\Users\\FunctionalModel\\Session";
+            }
             self::Set_LanguageFileClassname("\\Wafl\\Extensions\\Users\\UserAuth\\Conf\\Lang\\en_us");
 
-			if ($this->Get_RequiresInstallation())
+            if ($this->Get_RequiresInstallation())
 			{ //normally this is handled by wafl, but this is special extension because it handles core functionality (user system)
-				$this->InstallData(Core::$STORAGE_ENGINE);
-				Core::$STORAGE_ENGINE->UpdateStorageLocations();
-			}
+                $this->InstallData(Core::$STORAGE_ENGINE);
+                Core::$STORAGE_ENGINE->UpdateStorageLocations();
+            }
 
             \DblEj\Util\SystemEvents::AddSystemHandler(\DblEj\Util\SystemEvents::AFTER_SESSION_START, array($this, "LoadUser"));
 			User::SetAppVariables(self::$_usernameColumn, self::$_usernameLabel,
 								  self::$_userGroupTable, self::$_userGroupField, self::$_sessionIdField, self::$_sessionClass, self::$_resurrectableAccountField, self::$_resurrectableAccountValue);
-		}
+	}
 	}
 
     public static function Set_SessionClass($sessionClass)

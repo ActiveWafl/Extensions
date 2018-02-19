@@ -23,16 +23,16 @@ abstract class User extends \Wafl\Extensions\Users\UserAuth\DataModel\User {
         {
             $emailAddressOrUsernameField = [$emailAddressOrUsernameField];
         }
-		self::$_emailAddressOrUsernameField = $emailAddressOrUsernameField;
-		self::$_emailAddressOrUsernameLabel = $emailAddressOrUsernameLabel;
-		self::$_sessionFieldName = $sessionFieldName;
-		self::$_userGroupIdField = $userGroupIdField;
-		self::$_userGroupsTableName = $userGroupsTableName;
-		self::$_sessionClassName = $sessionClassName;
+        self::$_emailAddressOrUsernameField = $emailAddressOrUsernameField;
+        self::$_emailAddressOrUsernameLabel = $emailAddressOrUsernameLabel;
+        self::$_sessionFieldName = $sessionFieldName;
+        self::$_userGroupIdField = $userGroupIdField;
+        self::$_userGroupsTableName = $userGroupsTableName;
+        self::$_sessionClassName = $sessionClassName;
         self::$_ressurectableField = $resurrectableCol;
         self::$_ressurectableVal = $ressurectableVal;
         \Wafl\Extensions\Users\UserAuth\UserAuth::Set_SessionClass($sessionClassName);
-	}
+    }
     public static function RegisterNewUser($emailAddressOrUsername, $authorizationKey = null, $groupId = null, $otherFieldValues = null) {
         $subclass = get_called_class();
 
