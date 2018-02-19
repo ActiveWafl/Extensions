@@ -170,11 +170,11 @@ implements \DblEj\Data\IDatabaseConnection
 	public function __construct($dbServer = null, $dbCatalog = null, $dbUser = null, $dbPassword = null, $dbPort = 3306)
 	{
         parent::__construct();
-		$this->_dbServer	 = $dbServer;
-		$this->_dbUser		 = $dbUser;
-		$this->_dbPassword	 = $dbPassword;
-		$this->_dbCatalog	 = $dbCatalog;
-        $this->_dbPort       = $dbPort;
+            $this->_dbServer	 = $dbServer;
+            $this->_dbUser		 = $dbUser;
+            $this->_dbPassword	 = $dbPassword;
+            $this->_dbCatalog	 = $dbCatalog;
+            $this->_dbPort       = $dbPort;
 	}
 
     /**
