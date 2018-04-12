@@ -1,4 +1,9 @@
 {extends file=$EXTENSION_SETTINGS.LayoutTemplate}
+{block name="PAGE_TITLE" nocache}{$BLOG_CATEGORY->Get_Title()}{/block}
+{block name="PAGE_DESCRIPTION" nocache}{$EXTENSION_SETTINGS.Description}{/block}
+{block name="PAGE_URL" nocache}{$EXTENSION_SETTINGS.BaseUrl}{$BLOG_POST->GetUrlTitle()}{/block}
+{block name="PAGE_SECTION" nocache}{$EXTENSION_SETTINGS.Title}{/block}
+
 {block name="PAGE_CONTENT"}
     <style>
         .BlogPostMenuLayout

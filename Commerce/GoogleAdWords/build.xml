@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project name="Forums Wafl Extension" default="Build">
-    <property name="ExtensionName" value="Forums"/>
-    <property name="ExtensionVersion" value="0.0.2" />
+<project name="GoogleAdWords Wafl Extension" default="Build">
+    <property name="ExtensionName" value="GoogleAdWords"/>
+    <property name="ExtensionVersion" value="0.0.1" />
     
     <condition property="is_windows">
         <os family="windows" />

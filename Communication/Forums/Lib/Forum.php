@@ -123,11 +123,11 @@ class Forum extends \DblEj\Data\PersistableModel
 
     public function GetChildForums()
     {
-        return Forum::LoadAll($this->_storageEngine,"ParentForumId=".$this->_forumId, "DisplayOrder");
+        return Forum::LoadAll(self::getStorageEngine(),"ParentForumId=".$this->_forumId, "DisplayOrder");
     }
     public function GetChildThreads()
     {
-        return Thread::LoadAll($this->_storageEngine,"ParentForumId=".$this->_forumId, "DateCreated desc");
+        return Thread::LoadAll(self::getStorageEngine(),"ParentForumId=".$this->_forumId, "DateCreated desc");
     }
     public function GetPageLink()
     {

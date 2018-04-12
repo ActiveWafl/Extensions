@@ -1,7 +1,12 @@
 {extends file=$EXTENSION_SETTINGS.LayoutTemplate}
-{block name="HTML_HEAD_PAGE_AREA" nocache}{$BLOG_POST->Get_Title()}{/block}
-{block name="HTML_HEAD_PAGE_NAME" nocache}{$EXTENSION_SETTINGS.Title}{/block}
-{block name="HTML_HEAD_PAGE_DESCRIPTION" nocache}{$BLOG_POST->Get_PostDate()|date_format} - {$BLOG_POST->Get_Title()} - {$EXTENSION_SETTINGS.Title} - {$EXTENSION_SETTINGS.Description}{/block}
+{block name="PAGE_TITLE" nocache}{$BLOG_POST->Get_Title()}{/block}
+{block name="PAGE_TAGS" nocache}{implode(", ", $BLOG_POST->GetMainTagsCrossReferencedByBlogPostTags())}{/block}
+{block name="PAGE_DESCRIPTION" nocache}{$BLOG_POST->Get_PostDate()|date_format} - {$BLOG_POST->Get_Title()} - {$EXTENSION_SETTINGS.Title} - {$EXTENSION_SETTINGS.Description}{/block}
+{block name="PAGE_URL" nocache}{$EXTENSION_SETTINGS.BaseUrl}{$BLOG_POST->GetUrlTitle()}{/block}
+{block name="PAGE_SECTION" nocache}{$EXTENSION_SETTINGS.Title}{/block}
+{block name="PAGE_PUBLISH_TIME" nocache}{date('c', $BLOG_POST->Get_PostDate())}{/block}
+{block name="PAGE_MODIFY_TIME" nocache}{date('c',  $BLOG_POST->Get_PostDate())}{/block}
+$BLOG_POST->GetMainTagsCrossReferencedByBlogPostTags()
 {block name="PAGE_CONTENT"}
     <style>
         .BlogPostContentSection h1

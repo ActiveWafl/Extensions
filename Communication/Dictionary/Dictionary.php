@@ -28,10 +28,13 @@ implements \DblEj\Communication\Integration\IDictionary
     public function GetPartsOfSpeech($word)
     {
         $partsOfSpeech = [];
-        $pairs = $this->Lookup($word);
-        foreach ($pairs as $pair)
+        if ($word)
         {
-            $partsOfSpeech[] = $pair[0];
+            $pairs = $this->Lookup($word);
+            foreach ($pairs as $pair)
+            {
+                $partsOfSpeech[] = $pair[0];
+            }
         }
         return array_unique($partsOfSpeech);
     }
@@ -39,29 +42,32 @@ implements \DblEj\Communication\Integration\IDictionary
     public function Lookup($word)
     {
         $wordDefPartPairs = [];
+        $cleanWord = trim(str_replace("\\/.,!@#$%^&*()+=\][|}{", " ", $word));
 
-        $resultsByBook = $this->_callDict($word);
-        foreach ($resultsByBook as $bookName=>$resultByBook)
+        if ($cleanWord)
         {
-            switch ($bookName)
+            $resultsByBook = $this->_callDict($cleanWord);
+            foreach ($resultsByBook as $bookName=>$resultByBook)
             {
-                case "wn":
-                    $results = $this->_parseWordnet($word, $resultByBook);
-                    break;
-                case "jargon":
-                    $results = $this->_parseJargon($word, $resultByBook);
-                    break;
-                case "gcide":
-                    $results = $this->_parseGcide($word, $resultByBook);
-                    break;
-            }
+                switch ($bookName)
+                {
+                    case "wn":
+                        $results = $this->_parseWordnet($cleanWord, $resultByBook);
+                        break;
+                    case "jargon":
+                        $results = $this->_parseJargon($cleanWord, $resultByBook);
+                        break;
+                    case "gcide":
+                        $results = $this->_parseGcide($cleanWord, $resultByBook);
+                        break;
+                }
 
-            foreach ($results as $result)
-            {
-                $wordDefPartPairs[] = $result;
+                foreach ($results as $result)
+                {
+                    $wordDefPartPairs[] = $result;
+                }
             }
         }
-
         return $wordDefPartPairs;
     }
 
@@ -69,7 +75,8 @@ implements \DblEj\Communication\Integration\IDictionary
     {
         $outputLines = null;
         $result = null;
-        exec("dict \"$word\"", $outputLines, $result);
+
+        exec("dict \"$word\" 2> /dev/null", $outputLines, $result);
 
         $resultsByBook = ["wn"=>[], "jargon"=>[], "gcide"=>[]];
         $currentBook = null;

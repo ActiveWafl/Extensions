@@ -103,7 +103,7 @@ class Index implements \DblEj\Data\IIndex
      * @param IndexSort[] $sorts An array of IndexSort objects instructing the index on how to sort the results.
      * @param mixed $args Can be used to pass a list of exclusive fields
 	 */
-	function Search($fieldToSearchOn, $searchPhrase, $startOffset=0, $count=null, array $returnFields=null, array $sorts=null, $args=null)
+	function Search($fieldToSearchOn, $searchPhrase, $startOffset=0, $count=null, array $returnFields=null, array $sorts=null, $args=null, &$totalNumFound = null)
 	{
         $this->_connectOnDemand();
 		if ($returnFields == null)
@@ -114,10 +114,23 @@ class Index implements \DblEj\Data\IIndex
 		{
 			$fieldToSearchOn = "*";
 		}
+//        print_r($fieldToSearchOn);die();
+        $fieldSearchGroupings = isset($args["FieldSearchGroupings"])?$args["FieldSearchGroupings"]:[];
+        $fieldSearchGroupingLimits = isset($args["FieldSearchGroupLimits"])?$args["FieldSearchGroupLimits"]:[];
+
+        if (!$fieldSearchGroupings)
+        {
+            $fieldSearchGroupings = [];
+        }
+        if (!$fieldSearchGroupingLimits)
+        {
+            $fieldSearchGroupingLimits = [];
+        }
 		$returnArray = array();
         $excProximity = null;
         $nonexcProximity = null;
         $exclusiveFieldGroups = [];
+        $filterFields = [];
         if ($args && is_array($args) && isset($args["ExclusiveProximity"]))
         {
             $excProximity = $args["ExclusiveProximity"];
@@ -130,27 +143,86 @@ class Index implements \DblEj\Data\IIndex
         {
             $exclusiveFieldGroups = $args["ExclusiveFieldGroups"];
         }
+        if ($args && is_array($args) && isset($args["FilterFields"]))
+        {
+            $filterFields = $args["FilterFields"];
+        }
 
+        foreach ($fieldSearchGroupings as $fieldSearchGroupingBlockIdx=>$fieldSearchGroupingGroup)
+        {
+            foreach ($fieldSearchGroupingGroup as $groupedFieldIdx)
+            {
+                $groupedFieldSearchPhrase = $searchPhrase[$groupedFieldIdx];
+                $groupedFieldName = $fieldToSearchOn[$groupedFieldIdx];
+
+                if (isset($args["ValueSubtypeDelimiters"]) && isset($args["ValueSubtypeDelimiters"][$groupedFieldName]))
+                {
+                    $valueSubtypeDelimiter = $args["ValueSubtypeDelimiters"][$groupedFieldName];
+                    $splitPhrase = explode($valueSubtypeDelimiter, $groupedFieldSearchPhrase);
+                    $subTypeId = $splitPhrase[0];
+                } else {
+                    $subTypeId = 0;
+                }
+
+                if (isset($filterFields[$groupedFieldName]) && isset($filterFields[$groupedFieldName][$subTypeId]))
+                {
+                    unset ($filterFields[$groupedFieldName][$subTypeId]);
+                    if (count($filterFields[$groupedFieldName]) == 0)
+                    {
+                        unset($filterFields[$groupedFieldName]);
+                    }
+                }
+            }
+        }
         $queryString = "";
+        $filterQueries = [];
+        $facetFilterTags = [];
+        if ($args && is_array($args) && isset($args["FacetField"]))
+        {
+            $facetFields = is_array($args["FacetField"])?$args["FacetField"]:[$args["FacetField"]];
+        } else {
+            $facetFields = [];
+        }
 		if (is_array($fieldToSearchOn))
         {
             $indexesByFieldName = [];
             $queriesByFieldName = [];
+            $queriesByIndexGroup = [];
+
             foreach ($fieldToSearchOn as $fieldIdx=>$fieldName)
             {
-                if (!isset($indexesByFieldName[$fieldName]))
+                if (isset($args["ValueSubtypeDelimiters"]) && isset($args["ValueSubtypeDelimiters"][$fieldName]))
                 {
-                    $indexesByFieldName[$fieldName] = [];
-                    $queriesByFieldName[$fieldName] = "";
+                    $valueSubtypeDelimiter = $args["ValueSubtypeDelimiters"][$fieldName];
+                    $splitPhrase = explode($valueSubtypeDelimiter, $searchPhrase[$fieldIdx]);
+                    $subTypeId = $splitPhrase[0];
+                } else {
+                    $subTypeId = 0;
                 }
-                $indexesByFieldName[$fieldName][] = $fieldIdx;
+//                print_r($filterFields);
+//                if (array_search($searchPhrase[$fieldIdx], $filterFields[$fieldName][$subTypeId]) === false)
+//                {
+//                    die("dijidjid");
+//                }
+//                print "sp: ".$searchPhrase[$fieldIdx];
+                //die($searchPhrase[$fieldIdx]);
+                if ((key_exists($fieldName, $filterFields) === false) || ($subTypeId !== null && (key_exists($subTypeId, $filterFields[$fieldName]) === false)) || ($subTypeId !== null && (array_search($searchPhrase[$fieldIdx], $filterFields[$fieldName][$subTypeId]) === false)))
+                {
+                    //die("asdfas");
+                    if (!isset($indexesByFieldName[$fieldName]))
+                    {
+                        $indexesByFieldName[$fieldName] = [];
+                        $queriesByFieldName[$fieldName] = "";
+                    }
+                    $indexesByFieldName[$fieldName][] = $fieldIdx;
+                }
             }
             foreach ($indexesByFieldName as $fieldName => $fieldIndexes)
             {
                 if (isset($exclusiveFieldGroups[$fieldName]))
                 {
                     $groupQuery = "";
-                    foreach ($exclusiveFieldGroups[$fieldName] as $attributeTypeId=>$groupedExclusiveFields)
+                    foreach ($exclusiveFieldGroups[$fieldName] as $groupedExclusiveFields)
                     {
                         $innerGroupQuery = "";
                         foreach ($groupedExclusiveFields as $groupSearchString)
@@ -164,16 +236,16 @@ class Index implements \DblEj\Data\IIndex
                             {
                                 if ($excProximity)
                                 {
-                                    $innerGroupQuery .= "$fieldName:\"".  str_replace("\"", "\\\"", $groupSearchString)."\"~$excProximity\r\n";
+                                    $innerGroupQuery .= "$fieldName:(".  str_replace("\"", "\\\"", $groupSearchString).")~$excProximity\r\n";
                                 } else {
-                                    $innerGroupQuery .= "$fieldName:".(str_replace("\"", "\\\"", $groupSearchString))."\r\n";
+                                    $innerGroupQuery .= "$fieldName:(".(str_replace("\"", "\\\"", $groupSearchString)).")\r\n";
                                 }
                             } else {
                                 if ($excProximity)
                                 {
-                                    $innerGroupQuery .= "$fieldName:\"".  str_replace("\"", "\\\"", $groupSearchString)."\"~$excProximity\r\n";
+                                    $innerGroupQuery .= "$fieldName:(".  str_replace("\"", "\\\"", $groupSearchString)."\")~$excProximity\r\n";
                                 } else {
-                                    $innerGroupQuery .= "$fieldName:".(str_replace("\"", "\\\"", $groupSearchString))."\r\n";
+                                    $innerGroupQuery .= "$fieldName:(".(str_replace("\"", "\\\"", $groupSearchString)).")\r\n";
                                 }
                             }
                         }
@@ -193,33 +265,57 @@ class Index implements \DblEj\Data\IIndex
                 } else {
                     foreach ($fieldIndexes as $fieldIdx)
                     {
-                        $searchString = $searchPhrase[$fieldIdx];
-                        $queriesByFieldName[$fieldName] = $queriesByFieldName[$fieldName] ? $queriesByFieldName[$fieldName]." OR ":$queriesByFieldName[$fieldName];
-
-                        if (stripos($searchString, "[") === false)
+                        $indexIsGrouped = false;
+                        foreach ($fieldSearchGroupings as $groupIndexes)
                         {
-                            //SearchByWord is currently the default (hardcoded) way of doing things.
-                            //Use the commented code below to change that.
-                            //We want to move to serahcing the entire phrase and let solr handle all that work
-                            //so that phrasing works.
-                            //Using SearchByWord breaks phrasing but it reduces all the false results.
-
-                            if ($excProximity)
+                            if (array_search($fieldIdx, $groupIndexes) !== false)
                             {
-                                $queriesByFieldName[$fieldName] .= "$fieldName:\"".  str_replace("\"", "\\\"", $searchString)."\"~$excProximity\r\n";
-                            } else {
-                                $queriesByFieldName[$fieldName] .= "$fieldName:\"".(str_replace("\"", "\\\"", $searchString))."\"\r\n";
+                                $indexIsGrouped = true;
+                                break;
                             }
-                        } else {
-                            if ($excProximity)
+                        }
+                        if (!$indexIsGrouped)
+                        {
+                            $searchString = $searchPhrase[$fieldIdx];
+
+                            $queriesByFieldName[$fieldName] = $queriesByFieldName[$fieldName] ? ($queriesByFieldName[$fieldName]." OR "):$queriesByFieldName[$fieldName];
+
+                            if (stripos($searchString, "[") === false)
                             {
-                                $queriesByFieldName[$fieldName] .= "$fieldName:\"".  str_replace("\"", "\\\"", $searchString)."\"~$excProximity\r\n";
+                                if ($excProximity)
+                                {
+                                    $queriesByFieldName[$fieldName] .= "$fieldName:(".  str_replace("\"", "\\\"", $searchString).")~$excProximity\r\n";
+                                } else {
+                                    $queriesByFieldName[$fieldName] .= "$fieldName:(".(str_replace("\"", "\\\"", $searchString)).")\r\n";
+                                }
                             } else {
-                                $queriesByFieldName[$fieldName] .= "$fieldName:\"".(str_replace("\"", "\\\"", $searchString))."\"\r\n";
+                                if ($excProximity)
+                                {
+                                    $queriesByFieldName[$fieldName] .= "$fieldName:(".  str_replace("\"", "\\\"", $searchString).")~$excProximity\r\n";
+                                } else {
+                                    $queriesByFieldName[$fieldName] .= "$fieldName:(".(str_replace("\"", "\\\"", $searchString)).")\r\n";
+                                }
                             }
                         }
                     }
                 }
+            }
+
+            foreach ($fieldSearchGroupings as $fieldSearchGroupIdx => $fieldSearchFieldIndexGroup)
+            {
+                $queriesByIndexGroup[$fieldSearchGroupIdx] = "";
+                foreach ($fieldSearchFieldIndexGroup as $fieldIdx)
+                {
+                    $fieldName = $fieldToSearchOn[$fieldIdx];
+                    $searchString = $searchPhrase[$fieldIdx];
+                    if ($queriesByIndexGroup[$fieldSearchGroupIdx])
+                    {
+                        $queriesByIndexGroup[$fieldSearchGroupIdx] .= " AND ";
+                    }
+                    $queriesByIndexGroup[$fieldSearchGroupIdx] .= "$fieldName:(".(str_replace("\"", "\\\"", $searchString)).")\r\n";
+
+                }
+
             }
 
             if ($args && is_array($args) && isset($args["ExclusiveFields"]))
@@ -241,6 +337,18 @@ class Index implements \DblEj\Data\IIndex
                             $queryStringNonExc .= "($query)";
                         }
                     }
+                }
+                foreach ($queriesByIndexGroup as $queryIdx=>$query)
+                {
+                    if (isset($fieldSearchGroupingLimits[$queryIdx]))
+                    {
+                        $qtyLimitForGroup = $fieldSearchGroupingLimits[$queryIdx];
+                    } else {
+                        $qtyLimitForGroup = null;
+                    }
+                    //currently qty limit not implemented
+                    $queryStringNonExc = $queryStringNonExc ? $queryStringNonExc." OR ":$queryStringNonExc;
+                    $queryStringNonExc .= "($query)";
                 }
                 if ($queryStringExc && $queryStringNonExc)
                 {
@@ -271,29 +379,81 @@ class Index implements \DblEj\Data\IIndex
                         }
                     }
                 }
+
+                foreach ($queriesByIndexGroup as $query)
+                {
+                    if ($query)
+                    {
+                        if ($queryString)
+                        {
+                            $queryString .= " AND ";
+                        }
+                        if ($nonexcProximity)
+                        {
+                            $queryString .= "($query)\r\n";
+                        } else {
+                            $queryString .= "($query)\r\n";
+                        }
+                    }
+                }
+            }
+            if ($filterFields)
+            {
+//                print_r($fieldSearchGroupings);
+//                print_r($indexesByFieldName);
+//                print_r($filterFields);die();
+//                unset($filterFields["AttributeValuePairs"]);
+
+                foreach ($filterFields as $filterFieldName => $filterValues)
+                {
+                    foreach ($filterValues as $filterValueId => $filterSubValues)
+                    {
+                        if ($filterSubValues)
+                        {
+                            $filterTag = "f-$filterFieldName-$filterValueId";
+                            if (array_search($filterFieldName, $facetFields) !== false)
+                            {
+                                $facetFilterTags[] = $filterTag;
+                            }
+
+                            $attSearch = "{!tag=$filterTag}$filterFieldName:(";
+                            foreach ($filterSubValues as $filterValue)
+                            {
+                                $attSearch .= str_replace("\"", "\\\"", $filterValue) . " ";
+                            }
+                            $attSearch = trim($attSearch).")";
+                            $filterQueries[] = $attSearch;
+                        }
+                    }
+                }
             }
         } else {
             if (stripos($searchPhrase, "[") === false)
             {
                 if ($nonexcProximity)
                 {
-                    $queryString = "($fieldToSearchOn:\"".str_replace("\"", "\\\"", $searchPhrase)."\"~$nonexcProximity)\r\n";
+                    $queryString = "($fieldToSearchOn:(".str_replace("\"", "\\\"", $searchPhrase).")~$nonexcProximity)\r\n";
                 } else {
-                    $queryString = "($fieldToSearchOn:".(str_replace("\"", "\\\"", $searchPhrase)).")\r\n";
+                    $queryString = "($fieldToSearchOn:(".(str_replace("\"", "\\\"", $searchPhrase))."))\r\n";
                 }
             } else {
                 if ($nonexcProximity)
                 {
-                    $queryString = "($fieldToSearchOn:\"".str_replace("\"", "\\\"", $searchPhrase)."\"~$nonexcProximity)\r\n";
+                    $queryString = "($fieldToSearchOn:(".str_replace("\"", "\\\"", $searchPhrase).")~$nonexcProximity)\r\n";
                 } else {
-                    $queryString = "($fieldToSearchOn:".(str_replace("\"", "\\\"", $searchPhrase)).")\r\n";
+                    $queryString = "($fieldToSearchOn:(".(str_replace("\"", "\\\"", $searchPhrase))."))\r\n";
                 }
             }
         }
+
 		try
 		{
-			$query = new \SolrQuery();
+			$query = new \SolrDisMaxQuery();
 			$query->setQuery($queryString);
+            foreach ($filterQueries as $filterQuery)
+            {
+                $query->addFilterQuery($filterQuery);
+            }
 			$query->setStart($startOffset);
 			if ($count)
 			{
@@ -313,11 +473,35 @@ class Index implements \DblEj\Data\IIndex
 					$query->addSortField($sort->Get_FieldName(),$sort->Get_Direction()==SORT_ASC?\SolrQuery::ORDER_ASC:\SolrQuery::ORDER_DESC);
 				}
 			}
-            if ($args && is_array($args) && isset($args["FacetField"]))
+
+            if ($facetFields)
             {
-                $facetField = $args["FacetField"];
-                $query->addFacetField($facetField);
+                $allFilterTagString = implode(",", $facetFilterTags);
+                foreach ($filterFields as $filterFieldName => $filterValues)
+                {
+                    if (array_search($filterFieldName, $facetFields) !== false)
+                    {
+                        foreach ($filterValues as $filterValueId => $filterValue)
+                        {
+                            $query->addFacetField("{!key=$filterFieldName-$filterValueId ex=f-$filterFieldName-$filterValueId}$filterFieldName");
+                        }
+                    }
+                    $query->addFacetField("{!key=$filterFieldName-base ex=$allFilterTagString}$filterFieldName");
+                }
+
+                foreach ($facetFields as $facetField)
+                {
+                    if (!isset($filterFields[$facetField]))
+                    {
+                        $query->addFacetField("{!key=$facetField-base ex=$allFilterTagString}$facetField");
+                    }
+                    $query->addFacetField($facetField);
+                }
                 $query->setFacet(true);
+            }
+            if (isset($args["MinMatch"]))
+            {
+               $query->setMinimumMatch($args["MinMatch"]);
             }
             $returnRaw = false;
             if ($args && is_array($args) && isset($args["ReturnRaw"]))
@@ -325,8 +509,9 @@ class Index implements \DblEj\Data\IIndex
                 $returnRaw = $args["ReturnRaw"];
             }
 			$response = $this->_client->query($query);
-			$response->setParseMode(\SolrQueryResponse::PARSE_SOLR_OBJ);
+            $response->setParseMode(\SolrQueryResponse::PARSE_SOLR_OBJ);
             $results = $response->getResponse();
+            $totalNumFound = $results->response->numFound;
             if ($returnRaw)
             {
                  $returnArray = $results;

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project name="Dictionary Wafl Extension" default="Build">
     <property name="ExtensionName" value="Dictionary"/>
-    <property name="ExtensionVersion" value="0.0.1" />
+    <property name="ExtensionVersion" value="0.0.3" />
     
     <condition property="is_windows">
         <os family="windows" />

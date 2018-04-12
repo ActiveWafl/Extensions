@@ -42,7 +42,7 @@ class Category extends \DblEj\Data\PersistableModel
 
     public function GetChildForums()
     {
-        return Forum::LoadAll($this->_storageEngine,"ParentCategoryId=".$this->_categoryId, "DisplayOrder");
+        return Forum::LoadAll(self::getStorageEngine(),"ParentCategoryId=".$this->_categoryId, "DisplayOrder");
     }
     public static function Get_StorageLocation()
     {

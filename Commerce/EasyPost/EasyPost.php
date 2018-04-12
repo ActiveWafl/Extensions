@@ -1208,7 +1208,7 @@ implements \DblEj\Commerce\Integration\IShipperExtension
             throw new \Exception("There are no matching shipments");
         }
         $scanFormResponse = $this->callApi("scan_forms", $shipmentObjects, \DblEj\Communication\Http\Request::HTTP_POST, true);
-
+        $errorMessage = "";
         if (!isset($scanFormResponse["form_url"]))
         {
             if (isset($scanFormResponse["error"]) && isset($scanFormResponse["code"]))
@@ -1225,11 +1225,15 @@ implements \DblEj\Commerce\Integration\IShipperExtension
                         $errorMessage = isset($scanFormResponse["error"]["message"])?$scanFormResponse["error"]["message"]:null;
                 }
             }
+            elseif (isset($scanFormResponse["error"]))
+            {
+                $errorMessage = isset($scanFormResponse["error"]["message"])?$scanFormResponse["error"]["message"]:null;
+            }
             if (!$errorMessage)
             {
-                $errorMessage = isset($scanFormResponse["message"])?$scanFormResponse["message"]:"";
+                $errorMessage = isset($scanFormResponse["message"])?$scanFormResponse["message"]:"unknown error";
             }
-            throw new \Wafl\Exceptions\Exception("Could not get scan form. ". print_r($scanFormResponse, true).(isset($scanFormResponse["message"])?$scanFormResponse["message"]:""), E_ERROR, null, "Error creating manifest: $errorMessage");
+            throw new \Wafl\Exceptions\Exception("Could not get scan form. ". print_r($scanFormResponse, true).$errorMessage, E_ERROR, null, "Error creating manifest: $errorMessage");
         }
         return [$scanFormResponse["id"], [$scanFormResponse["form_url"]]];
     }
@@ -1260,6 +1264,19 @@ implements \DblEj\Commerce\Integration\IShipperExtension
         if (!$weight)
         {
             throw new \Wafl\Exceptions\Exception("Package weight cannot be 0", E_WARNING, null, "Package weight cannot be 0");
+        }
+
+        if ($destName)
+        {
+            $destName = preg_replace('/[[:^print:]]/', '', $destName);
+        }
+        if ($destAddress)
+        {
+            $destAddress = preg_replace('/[[:^print:]]/', '', $destAddress);
+        }
+        if ($destAddress2)
+        {
+            $destAddress2 = preg_replace('/[[:^print:]]/', '', $destAddress2);
         }
 
         $rate = $this->_getRate($service, $sourceName, $sourceCompany, $sourceAddress, $sourceAddress2, $sourceCity, $sourceStateOrRegion, $sourceCountry, $sourcePostalCode, $sourcePhone, $sourceEmail, $destName, $destAddress, $destAddress2, $destCity, $destStateOrRegion, $destCountry, $destPostalCode, $destPhone, $destEmail, $packageType, $packageQualifier, $weight, $packageWidth, $packageHeight, $packageLength, $packageGirth, $valueOfContents, $tracking, $insuranceAmount, $codAmount, $contentsType, $serviceFlags);
