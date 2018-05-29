@@ -14,21 +14,34 @@ function smarty_block_highlightcode($params, $content, $template, &$repeat) {
 			$bgColor2 = isset($params["LineBgColorAlt"])?$params["LineBgColorAlt"]:"#f0f0f0";
 			$tabWidth = isset($params["TabWidth"])?$params["TabWidth"]:3;
 			$lineNumbers = isset($params["LineNumbers"])?$params["LineNumbers"]:true;
-			
+
 			if ($inline) { $lineNumbers = false; }
 			$requestedLanguage = $language;
 			if (strtolower($language) == "javascriptsignature")
 			{
 				$language="Actionscript";
 			}
-            require_once("phar://".str_replace("\\","/",__DIR__)."/../../../Transformers/Geshi/GeSHi.phar/geshi.php");
+
+            $triedPaths = [];
+            $geshiPath = "phar://".str_replace("\\","/",__DIR__)."/../../../Transformers/GeSHi/GeSHi.phar/geshi.php";
+            $triedPaths[] = $geshiPath;
+            if (!file_exists($geshiPath))
+            {
+                $geshiPath = "phar://".str_replace("\\","/",__DIR__)."/../../../Transformers/Geshi/GeSHi.phar/geshi.php";
+                $triedPaths[] = $geshiPath;
+            }
+            if (!file_exists($geshiPath))
+            {
+                throw new \Wafl\Exceptions\Exception("Cannot use highlightcode template function because Geshi cannot be found at ".implode(", ", $triedPaths), E_ERROR, null, "Cannot use highlightcode template function because Geshi cannot be found at ".implode(", ", $triedPaths));
+            }
+            require_once($geshiPath);
             $geshi = new GeSHi($content, $language, null);
-			
+
 			if (strtolower($requestedLanguage) == "javascriptsignature")
 			{
 				$geshi->remove_keyword(2,"function");
 				$geshi->remove_keyword(3,"call");
-				$geshi->add_keyword(3,"function");			
+				$geshi->add_keyword(3,"function");
 			}
             $geshi->set_header_type(GESHI_HEADER_NONE);
 			$geshi->set_tab_width($tabWidth);
@@ -42,7 +55,7 @@ function smarty_block_highlightcode($params, $content, $template, &$repeat) {
             if ($geshi->error()) {
                 throw new \DblEj\Extension\ExtensionException("Error while highlighting code: ".$geshi->error(), E_WARNING);
             }
-			
+
 			if ($inline)
 			{
 				return "<code>$parsedCode</code>";
@@ -61,8 +74,8 @@ function smarty_block_highlightcode($params, $content, $template, &$repeat) {
 				}
 				return "<section class=\"CodeContainer\">$header<code>$parsedCode</code>$footer</section>";
 			}
-        } 
-        catch (\Exception $ex) 
+        }
+        catch (\Exception $ex)
         {
             return "<section class=\"CodeContainer\">".$ex->getMessage()."</section>";
         }
