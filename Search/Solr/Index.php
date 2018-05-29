@@ -89,7 +89,7 @@ class Index implements \DblEj\Data\IIndex
             }
         }
 		$updateResponse = $this->_client->addDocument($doc,true,10000);
-		return $updateResponse->success()==1;
+		return $updateResponse->success() == 1;
 	}
 
 	/**
