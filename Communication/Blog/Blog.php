@@ -223,9 +223,7 @@ implements \DblEj\Communication\Integration\IPostSharerExtension
 
 	public static function Get_Dependencies()
 	{
-		$depends = new DependencyCollection();
-        $depends->AddDependency("Communication\\Blog", \DblEj\Extension\Dependency::TYPE_EXTENSION, "FixedScroller", \DblEj\Extension\Dependency::TYPE_CONTROL);
-		return $depends;
+        return [];
 	}
 
 	public static function Get_GlobalScripts()

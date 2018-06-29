@@ -11,8 +11,13 @@ class Home extends \DblEj\Extension\ExtensionControllerBase
         $sidePostsCount = $this->Get_Extension()->GetSettingValue("SidePostsCount");
         $sidePostsCategoryListString = $this->Get_Extension()->GetSettingValue("SidePostsCategories");
 
-        $sidePostsCategoryList = explode(",", $sidePostsCategoryListString);
-
+        if ($sidePostsCategoryListString)
+        {
+            $sidePostsCategoryList = explode(",", $sidePostsCategoryListString);
+        } else {
+            $sidePostsCategoryList = null;
+        }
+        
         if (count($sidePostsCategoryList))
         {
             $sidePostsCategorySql = "'".implode("','", $sidePostsCategoryList)."'";
@@ -24,7 +29,6 @@ class Home extends \DblEj\Extension\ExtensionControllerBase
         $tagModel = $extension->GetSettingValue("TagModel");
         $tags = $tagModel::Filter("BlogPosts.BlogPostId = BlogPostTags.BlogPostId and BlogPosts.IsPublished = 1", null, null, null, ["BlogPosts"=>null, "BlogPostTags"=>"TagId"]);
         $allCategories = \Wafl\Extensions\Communication\Blog\Models\FunctionalModel\BlogCategory::Filter(null, "Title");
-
         return $this->createResponseFromRequest($request, $app, new \DblEj\Data\ArrayModel(["ALL_CATEGORIES"=>$allCategories,"ALL_TAGS"=>$tags,"POSTS"=>$posts]));
 	}
 }
