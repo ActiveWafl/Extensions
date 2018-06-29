@@ -175,7 +175,7 @@ class Predis extends ExtensionBase implements IDataStore
 
 	public function FlushAllData()
 	{
-		$this->_predis->flushDB();
+		$this->_predis->flushAll();
 	}
 
     public function Get_StoreId()
