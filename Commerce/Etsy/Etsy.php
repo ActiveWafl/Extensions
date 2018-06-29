@@ -15,6 +15,7 @@ implements \DblEj\Commerce\Integration\ISellerAggregatorExtension
     private static $_maxRequestsPerSecond = 5;
     private static $_throttleRequestBlockSecond = 0;
     private static $_throttleRequestBlockRequestCount = 0;
+    private static $_useItemSkus = true;
 
     private $_etsyShopName;
 
@@ -30,6 +31,42 @@ implements \DblEj\Commerce\Integration\ISellerAggregatorExtension
     {
         //this was thrown together quickly, not standardized
         $args = ["include_private"=>true, "keywords"=>$titleSearch];
+        $apiResult = $this->callApi("shops/$this->_etsyShopName/listings/active", $args);
+        if (isset($apiResult["results"]))
+        {
+            $results = $apiResult["results"];
+        } else {
+            $results = [];
+        }
+
+        if (!$activeOnly)
+        {
+            $apiResult = $this->callApi("shops/$this->_etsyShopName/listings/inactive", $args);
+            if (isset($apiResult["results"]))
+            {
+                foreach ($apiResult["results"] as $result)
+                {
+                    $results[] = $result;
+                }
+            }
+
+            $apiResult = $this->callApi("shops/$this->_etsyShopName/listings/expired", $args);
+            if (isset($apiResult["results"]))
+            {
+                foreach ($apiResult["results"] as $result)
+                {
+                    $results[] = $result;
+                }
+            }
+        }
+
+        return $results;
+    }
+
+    public function GetAllListings($activeOnly = true)
+    {
+        //this was thrown together quickly, not standardized
+        $args = ["include_private"=>true];
         $apiResult = $this->callApi("shops/$this->_etsyShopName/listings/active", $args);
         if (isset($apiResult["results"]))
         {
@@ -153,12 +190,13 @@ implements \DblEj\Commerce\Integration\ISellerAggregatorExtension
             $description = $lineItem["description"];
             $shippingCharge = $lineItem["shipping_cost"];
             $txnId = $lineItem["listing_id"];
-            if (isset($lineItem["product_data"]) && isset($lineItem["product_data"]["sku"])&& $lineItem["product_data"]["sku"])
+            if (self::$_useItemSkus && (isset($lineItem["product_data"]) && isset($lineItem["product_data"]["sku"])&& $lineItem["product_data"]["sku"]))
             {
                 $itemId = $lineItem["product_data"]["sku"];
             } else {
                 $itemId = "etsy-".$lineItem["listing_id"];
             }
+
             $createDate = $lineItem["creation_tsz"];
             $itemPrice = $lineItem["price"];
             $itemQty = $lineItem["quantity"];
@@ -349,6 +387,7 @@ implements \DblEj\Commerce\Integration\ISellerAggregatorExtension
         }
         self::$_oauthObject = new \OAuth(self::$_apiKey, self::$_apiSecret);
         self::$_oauthObject->disableSSLChecks();
+        self::$_oauthObject->enableDebug();
         if ($requestOrAccessToken && $verifier)
         {
             $tokenSecret = $app->GetSessionData("oauth_token_secret");
@@ -441,7 +480,7 @@ implements \DblEj\Commerce\Integration\ISellerAggregatorExtension
 
 	protected static function getAvailableSettings()
 	{
-		return array("ApiKey", "ApiUrl", "ApiSecret", "MaxRequestsPerSecond", "Etsy Shop Name", "Shipping Rate Mappings");
+		return array("ApiKey", "ApiUrl", "ApiSecret", "MaxRequestsPerSecond", "Etsy Shop Name", "Shipping Rate Mappings", "UseItemSkus");
 	}
 
 	protected function ConfirmedConfigure($settingName, $settingValue)
@@ -462,6 +501,9 @@ implements \DblEj\Commerce\Integration\ISellerAggregatorExtension
                 break;
             case "Etsy Shop Name":
                 $this->_etsyShopName = $settingValue;
+                break;
+            case "UseItemSkus":
+                self::$_useItemSkus = $settingValue;
                 break;
 		}
 	}
@@ -484,6 +526,9 @@ implements \DblEj\Commerce\Integration\ISellerAggregatorExtension
 				break;
             case "Etsy Shop Name":
                 return $this->_etsyShopName;
+                break;
+            case "UseItemSkus":
+                return self::$_useItemSkus;
                 break;
 		}
     }
