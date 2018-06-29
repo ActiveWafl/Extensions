@@ -77,10 +77,28 @@ class Index implements \DblEj\Data\IIndex
             {
                 foreach ($data as $dataElem)
                 {
-                    @$doc->addField($dataName,$dataElem);
+                    if ($dataElem === true)
+                    {
+                        @$doc->addField($dataName,'true');
+                    }
+                    elseif ($dataElem === false)
+                    {
+                        @$doc->addField($dataName,'false');
+                    } else {
+                        @$doc->addField($dataName,$dataElem);
+                    }
                 }
             } else {
-                @$doc->addField($dataName,$data);
+                if ($data === true)
+                {
+                    @$doc->addField($dataName,'true');
+                }
+                elseif ($data === false)
+                {
+                    @$doc->addField($dataName,'false');
+                } else {
+                    @$doc->addField($dataName,$data);
+                }
             }
             $lastError = error_get_last();
             if ($lastError)
@@ -88,6 +106,7 @@ class Index implements \DblEj\Data\IIndex
                 throw new \Exception("Possibe error indexing the data named $dataName: ".$lastError["message"]." in " . $lastError["file"] ." at line " . $lastError["line"],E_WARNING);
             }
         }
+
 		$updateResponse = $this->_client->addDocument($doc,true,10000);
 		return $updateResponse->success() == 1;
 	}
@@ -308,6 +327,15 @@ class Index implements \DblEj\Data\IIndex
                 {
                     $fieldName = $fieldToSearchOn[$fieldIdx];
                     $searchString = $searchPhrase[$fieldIdx];
+                    if ($searchString === false)
+                    {
+                        $searchString = "false";
+                    }
+                    elseif ($searchString === true)
+                    {
+                        $searchString = "true";
+                    }
+
                     if ($queriesByIndexGroup[$fieldSearchGroupIdx])
                     {
                         $queriesByIndexGroup[$fieldSearchGroupIdx] .= " AND ";
@@ -328,13 +356,26 @@ class Index implements \DblEj\Data\IIndex
                 {
                     if ($query)
                     {
+                        if ($query === false)
+                        {
+                            $queryString = "false";
+                        }
+                        elseif ($query === true)
+                        {
+                            $queryString = "true";
+                        }
+                        else
+                        {
+                            $queryString = $query;
+                        }
+
                         if (array_search($fieldName, $exclusiveFields) !== false)
                         {
                             $queryStringExc = $queryStringExc ? $queryStringExc." AND ":$queryStringExc;
-                            $queryStringExc .= "($query)";
+                            $queryStringExc .= "($queryString)";
                         } else {
                             $queryStringNonExc = $queryStringNonExc ? $queryStringNonExc." OR ":$queryStringNonExc;
-                            $queryStringNonExc .= "($query)";
+                            $queryStringNonExc .= "($queryString)";
                         }
                     }
                 }
@@ -419,7 +460,16 @@ class Index implements \DblEj\Data\IIndex
                             $attSearch = "{!tag=$filterTag}$filterFieldName:(";
                             foreach ($filterSubValues as $filterValue)
                             {
-                                $attSearch .= str_replace("\"", "\\\"", $filterValue) . " ";
+                                if ($filterValue === true)
+                                {
+                                    $filterValueString = "true";
+                                } elseif ($filterValue === false)
+                                {
+                                    $filterValueString = "false";
+                                } else {
+                                    $filterValueString = strval($filterValue);
+                                }
+                                $attSearch .= str_replace("\"", "\\\"", $filterValueString) . " ";
                             }
                             $attSearch = trim($attSearch).")";
                             $filterQueries[] = $attSearch;
@@ -508,6 +558,15 @@ class Index implements \DblEj\Data\IIndex
             {
                 $returnRaw = $args["ReturnRaw"];
             }
+            if ($args && is_array($args) && isset($args["HighlightFields"]) && $args["HighlightFields"])
+            {
+                $query->setHighlight(true);
+                foreach ($args["HighlightFields"] as $highlightField)
+                {
+                    $query->addHighlightField($highlightField);
+                }
+            }
+//            die($query);
 			$response = $this->_client->query($query);
             $response->setParseMode(\SolrQueryResponse::PARSE_SOLR_OBJ);
             $results = $response->getResponse();
