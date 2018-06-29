@@ -15,7 +15,7 @@ class Search extends \DblEj\Extension\ExtensionControllerBase
         $tagField = $extension->GetSettingValue("TagField");
         $allposts = \Wafl\Extensions\Communication\Blog\Models\FunctionalModel\BlogPost::Filter(null, "PostDate desc", 30);
         $tagModelClass = $extension->GetSettingValue("TagModel");
-        $tagRows = $tagModelClass::Filter();
+        $tagRows = $tagModelClass::Filter("BlogPostTags.TagId = $tagsTable.$tagField", null, null, null, ["BlogPostTags" => null]);
         $allCategories = \Wafl\Extensions\Communication\Blog\Models\FunctionalModel\BlogCategory::Filter(null, "Title");
 
         $tags = [];

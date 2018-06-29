@@ -16,8 +16,13 @@ class BlogPost extends \DblEj\Extension\ExtensionControllerBase
         $sidePostsCount = $this->Get_Extension()->GetSettingValue("SidePostsCount");
         $sidePostsCategoryListString = $this->Get_Extension()->GetSettingValue("SidePostsCategories");
 
-        $sidePostsCategoryList = explode(",", $sidePostsCategoryListString);
-
+        if ($sidePostsCategoryListString)
+        {
+            $sidePostsCategoryList = explode(",", $sidePostsCategoryListString);
+        } else {
+            $sidePostsCategoryList = null;
+        }
+        
         if (count($sidePostsCategoryList))
         {
             $sidePostsCategorySql = "'".implode("','", $sidePostsCategoryList)."'";

@@ -40,7 +40,6 @@
                     {/nocache}
 				</ul>
 			</div>
-            {ui name="FixedScroller" FixedElementSelector=".BlogPostMenuLayout" CelieingElementSelector="header" FloorElementSelector="footer"}
 			<div class="Spans8 Skips2">
 				<div class="BlogPostContentSection">
                     <header>
