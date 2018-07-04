@@ -461,7 +461,7 @@ implements \DblEj\Commerce\Integration\IPaymentGatewayExtension
 
     public function ProcessSavedCardPayment($cardKey, $amount, $description = "", $payerId = null, $currencyType = null, $invoiceId = null, $paidForItems = null, $shippingAmount = null, $recipientData = null, $testMode = false, $buyerEmail = null, $buyerPhone = null, &$rawSentToApi = null, $customData = [])
     {
-        throw new Exception("Paypal express does not support vault payments");
+        throw new \Exception("Paypal express does not support vault payments");
     }
 
     public function SupportsSavedCards()
