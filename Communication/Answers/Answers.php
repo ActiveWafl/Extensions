@@ -295,7 +295,7 @@ implements \DblEj\Communication\Integration\IAnswerGiverExtension
                     $question->Set_DateAsked(time());
                     $question->Set_UserId(\Wafl\Core::$CURRENT_USER->Get_UserId());
                 } elseif ($question->Get_UserId() != \Wafl\Core::$CURRENT_USER->Get_UserId()) {
-                    throw new Exception("You cannot edit someone else's question");
+                    throw new \Wafl\Exceptions\Exception("You cannot edit someone else's question", E_WARNING, null, "You cannot edit someone else's question");
                 }
                 $question->Set_IsApproved(0);
                 $question->Save();

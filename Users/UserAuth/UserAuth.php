@@ -306,7 +306,7 @@ class UserAuth extends ExtensionBase implements \DblEj\Authentication\Integratio
 					else
 					{
 						$proceedLogin = false;
-						throw new \Exception("Unknown error");
+						throw new \Exception("Unknown error when trying to UserAuth::LoadUser");
 					}
 				}
 				catch (\Exception $err)
@@ -321,7 +321,7 @@ class UserAuth extends ExtensionBase implements \DblEj\Authentication\Integratio
 			{
 				$email		 = isset($_REQUEST[self::$_usernameRequestVariable]) ? $_REQUEST[self::$_usernameRequestVariable] : null;
 				$password	 = isset($_REQUEST[self::$_passwordRequestVariable]) ? $_REQUEST[self::$_passwordRequestVariable] : null;
-				$this->Login($email,$password);
+				$this->Login($email, $password);
 			}
 			if ($action == "Logout")
 			{

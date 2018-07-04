@@ -15,7 +15,7 @@ class GoogleTimezoneApi extends ExtensionBase
     {
         if (!$this->_apiKey)
         {
-            throw new Exception("You must set the Google Maps Timezone Api Key");
+            throw new \Exception("You must set the Google Maps Timezone Api Key");
         }
 
         $timesetToDetermineDst = time();
