@@ -21,7 +21,10 @@ implements \DblEj\Commerce\Integration\IPaymentGatewayExtension
         require_once("phar://".__DIR__.DIRECTORY_SEPARATOR."Stripe4.1.1.phar".DIRECTORY_SEPARATOR."StripeObject.php");
         require_once("phar://".__DIR__.DIRECTORY_SEPARATOR."Stripe4.1.1.phar".DIRECTORY_SEPARATOR."ApiResource.php");
         require_once("phar://".__DIR__.DIRECTORY_SEPARATOR."Stripe4.1.1.phar".DIRECTORY_SEPARATOR."ExternalAccount.php");
+        require_once("phar://".__DIR__.DIRECTORY_SEPARATOR."Stripe4.1.1.phar".DIRECTORY_SEPARATOR."SingletonApiResource.php");
+        require_once("phar://".__DIR__.DIRECTORY_SEPARATOR."Stripe4.1.1.phar".DIRECTORY_SEPARATOR."Balance.php");
         require_once("phar://".__DIR__.DIRECTORY_SEPARATOR."Stripe4.1.1.phar".DIRECTORY_SEPARATOR."Card.php");
+        require_once("phar://".__DIR__.DIRECTORY_SEPARATOR."Stripe4.1.1.phar".DIRECTORY_SEPARATOR."Source.php");
         require_once("phar://".__DIR__.DIRECTORY_SEPARATOR."Stripe4.1.1.phar".DIRECTORY_SEPARATOR."Charge.php");
         require_once("phar://".__DIR__.DIRECTORY_SEPARATOR."Stripe4.1.1.phar".DIRECTORY_SEPARATOR."Collection.php");
         require_once("phar://".__DIR__.DIRECTORY_SEPARATOR."Stripe4.1.1.phar".DIRECTORY_SEPARATOR."Refund.php");
@@ -409,6 +412,118 @@ implements \DblEj\Commerce\Integration\IPaymentGatewayExtension
         return $card->id;
 	}
 
+	public static function AddCardByToken ($customerToken, $cardToken)
+	{
+            require_once(__DIR__.DIRECTORY_SEPARATOR."Stripe4.1.1.phar");
+            if (substr($customerToken, 0, 4) == "cus_")
+            {
+                $stripeCustomer = \Stripe\Customer::retrieve($customerToken);
+                $arrayKey = "source";
+            }
+            elseif (substr($customerToken, 0, 5) == "acct_")
+            {
+                $stripeCustomer = \Stripe\Account::retrieve($customerToken);
+                $arrayKey = "external_account";
+            }
+
+            $accountArray =
+            [
+                $arrayKey => $cardToken
+            ];
+
+            $card = $stripeCustomer->sources->create($accountArray);
+            return $card->id;
+        }
+
+	public static function ChargeCardByToken ($cardToken, $amount, $description)
+	{
+            $returnResult = null;
+            try
+            {
+                require_once(__DIR__.DIRECTORY_SEPARATOR."Stripe4.1.1.phar");
+                $accountArray =
+                [
+                    "amount" => $amount,
+                    "currency" => "usd",
+                    "source" => $cardToken
+                ];
+                $stripeResult = \Stripe\Charge::create($accountArray);
+                if ($stripeResult->status == "succeeded")
+                {
+                    $returnResult = new \DblEj\Integration\Ecommerce\PaymentProcessResult(\DblEj\Integration\Ecommerce\PaymentProcessResult::PAYMENTSTATUS_CLEARED, true, \DblEj\Communication\JsonUtil::EncodeJson($stripeResult), $stripeResult->id, $stripeResult->status);
+                } else {
+                    switch ($stripeResult->failure_code)
+                    {
+                        case "invalid_number";
+                            $returnResult = new \DblEj\Integration\Ecommerce\PaymentProcessResult(\DblEj\Integration\Ecommerce\PaymentProcessResult::PAYMENTSTATUS_FAILED_INVALID, false, \DblEj\Communication\JsonUtil::EncodeJson($stripeResult), $stripeResult->id, $stripeResult->status, null, null, $stripeResult->failure_message);
+                            break;
+                        case "invalid_expiry_month";
+                        case "invalid_expiry_year";
+                            $returnResult = new \DblEj\Integration\Ecommerce\PaymentProcessResult(\DblEj\Integration\Ecommerce\PaymentProcessResult::PAYMENTSTATUS_FAILED_EXPIRATION, false, \DblEj\Communication\JsonUtil::EncodeJson($stripeResult), $stripeResult->id, $stripeResult->status, null, null, $stripeResult->failure_message);
+                            break;
+                        case "invalid_cvc";
+                            $returnResult = new \DblEj\Integration\Ecommerce\PaymentProcessResult(\DblEj\Integration\Ecommerce\PaymentProcessResult::PAYMENTSTATUS_FAILED_SECURITY, false, \DblEj\Communication\JsonUtil::EncodeJson($stripeResult), $stripeResult->id, $stripeResult->status, null, null, $stripeResult->failure_message);
+                            break;
+                        case "incorrect_zip";
+                            $returnResult = new \DblEj\Integration\Ecommerce\PaymentProcessResult(\DblEj\Integration\Ecommerce\PaymentProcessResult::PAYMENTSTATUS_FAILED_ADDRESS, false, \DblEj\Communication\JsonUtil::EncodeJson($stripeResult), $stripeResult->id, $stripeResult->status, null, null, $stripeResult->failure_message);
+                            break;
+                        case "card_declined";
+                            $returnResult = new \DblEj\Integration\Ecommerce\PaymentProcessResult(\DblEj\Integration\Ecommerce\PaymentProcessResult::PAYMENTSTATUS_FAILED_REJECTED, false, \DblEj\Communication\JsonUtil::EncodeJson($stripeResult), $stripeResult->id, $stripeResult->status, null, null, $stripeResult->failure_message);
+                            break;
+                        default:
+                            $returnResult = new \DblEj\Integration\Ecommerce\PaymentProcessResult(\DblEj\Integration\Ecommerce\PaymentProcessResult::PAYMENTSTATUS_FAILED_OTHER, false, \DblEj\Communication\JsonUtil::EncodeJson($stripeResult), $stripeResult->id, $stripeResult->status, null, null, $stripeResult->failure_message);
+                            break;
+                    }
+                }
+            } catch(\Stripe\Error\Card $ex) {
+              // Since it's a decline, \Stripe\Error\Card will be caught
+                $body = $ex->getJsonBody();
+                switch ($body["error"]["code"])
+                {
+                    case "invalid_number";
+                    case "invalid_cvc";
+                    case "invalid_zip";
+                        $returnResult = new \DblEj\Integration\Ecommerce\PaymentProcessResult(\DblEj\Integration\Ecommerce\PaymentProcessResult::PAYMENTSTATUS_FAILED_INVALID, false, $ex->getMessage()." ".$ex->getTraceAsString(), "", "", null, null, $body["error"]["message"]);
+                        break;
+                    case "invalid_expiry_month";
+                    case "invalid_expiry_year";
+                        $returnResult = new \DblEj\Integration\Ecommerce\PaymentProcessResult(\DblEj\Integration\Ecommerce\PaymentProcessResult::PAYMENTSTATUS_FAILED_EXPIRATION, false, $ex->getMessage()." ".$ex->getTraceAsString(), "", "", null, null, $body["error"]["message"]);
+                        break;
+                    case "incorrect_cvc";
+                    case "incorrect_zip";
+                        $returnResult = new \DblEj\Integration\Ecommerce\PaymentProcessResult(\DblEj\Integration\Ecommerce\PaymentProcessResult::PAYMENTSTATUS_FAILED_SECURITY, false, $ex->getMessage()." ".$ex->getTraceAsString(), "", "", null, null, $body["error"]["message"]);
+                        break;
+                    case "card_declined";
+                        $returnResult = new \DblEj\Integration\Ecommerce\PaymentProcessResult(\DblEj\Integration\Ecommerce\PaymentProcessResult::PAYMENTSTATUS_FAILED_REJECTED, false, $ex->getMessage()." ".$ex->getTraceAsString(), "", "", null, null, $body["error"]["message"]);
+                        break;
+                    case "missing";
+                        $returnResult = new \DblEj\Integration\Ecommerce\PaymentProcessResult(\DblEj\Integration\Ecommerce\PaymentProcessResult::PAYMENTSTATUS_FAILED_REJECTED, false, $ex->getMessage()." ".$ex->getTraceAsString(), "", "", null, null, "Payment account information is missing or invalid");
+                        break;
+                    default:
+                        $returnResult = new \DblEj\Integration\Ecommerce\PaymentProcessResult(\DblEj\Integration\Ecommerce\PaymentProcessResult::PAYMENTSTATUS_FAILED_REJECTED, false, $ex->getMessage()." ".$ex->getTraceAsString(), "", "", null, null, $body["error"]["message"]);
+                        break;
+                }
+            } catch (\Stripe\Error\RateLimit $ex) {
+              // Too many requests made to the API too quickly
+                $returnResult = new \DblEj\Integration\Ecommerce\PaymentProcessResult(\DblEj\Integration\Ecommerce\PaymentProcessResult::PAYMENTSTATUS_FAILED_OTHER, false, $ex->getMessage()." ".$ex->getTraceAsString(), "", "", null, null, "The payment processor is busy. Please try again soon.");
+            } catch (\Stripe\Error\InvalidRequest $ex) {
+              // Invalid parameters were supplied to Stripe's API
+                $returnResult = new \DblEj\Integration\Ecommerce\PaymentProcessResult(\DblEj\Integration\Ecommerce\PaymentProcessResult::PAYMENTSTATUS_FAILED_INVALID, false, $ex->getMessage()." ".$ex->getTraceAsString(), "", "", null, null, "The card was rejected. Please verify all of the card information and try again.");
+            } catch (\Stripe\Error\Authentication $ex) {
+              // Authentication with Stripe's API failed (maybe you changed API keys recently)
+                $returnResult = new \DblEj\Integration\Ecommerce\PaymentProcessResult(\DblEj\Integration\Ecommerce\PaymentProcessResult::PAYMENTSTATUS_FAILED_OTHER, false, $ex->getMessage()." ".$ex->getTraceAsString(), "", "", null, null, "There was an error authenticating with the payment processor");
+            } catch (\Stripe\Error\ApiConnection $ex) {
+              // Network communication with Stripe failed
+                $returnResult = new \DblEj\Integration\Ecommerce\PaymentProcessResult(\DblEj\Integration\Ecommerce\PaymentProcessResult::PAYMENTSTATUS_FAILED_OTHER, false, $ex->getMessage()." ".$ex->getTraceAsString(), "", "", null, null, "There was an error communicating with the payment processor");
+            } catch (\Stripe\Error\Base $ex) {
+                $returnResult = new \DblEj\Integration\Ecommerce\PaymentProcessResult(\DblEj\Integration\Ecommerce\PaymentProcessResult::PAYMENTSTATUS_FAILED_OTHER, false, $ex->getMessage()." ".$ex->getTraceAsString(), "", "", null, null, "There was an error with the payment processor");
+            } catch (\Exception $ex) {
+                $returnResult = new \DblEj\Integration\Ecommerce\PaymentProcessResult(\DblEj\Integration\Ecommerce\PaymentProcessResult::PAYMENTSTATUS_FAILED_OTHER, false, $ex->getMessage()." ".$ex->getTraceAsString(), "", "", null, null, "There was a system error while processing the payment");
+            }
+            
+            return $returnResult;
+        }
+                
     /**
      * Charge a card
      *
