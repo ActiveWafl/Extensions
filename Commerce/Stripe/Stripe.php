@@ -881,7 +881,7 @@ implements \DblEj\Commerce\Integration\IPaymentGatewayExtension
         } catch (\Stripe\Error\Authentication $ex) {
           // Authentication with Stripe's API failed
           // (maybe you changed API keys recently)
-            $saveResult = new \DblEj\Integration\Ecommerce\SaveCardResult("", $ex->getMessage()." ".$ex->getTraceAsString(), "Error saving card", "There was an error while saving the card.  Please contact Plazko.com support.");
+            $saveResult = new \DblEj\Integration\Ecommerce\SaveCardResult("", $ex->getMessage()." ".$ex->getTraceAsString(), "Error saving card", "There was an error while saving the card.  Please contact support.");
         } catch (\Stripe\Error\ApiConnection $ex) {
           // Network communication with Stripe failed
             $saveResult = new \DblEj\Integration\Ecommerce\SaveCardResult("", $ex->getMessage()." ".$ex->getTraceAsString(), "Error saving card", "There was an error while saving the card. This error might be temporary. Please try again.");
@@ -1054,7 +1054,7 @@ implements \DblEj\Commerce\Integration\IPaymentGatewayExtension
         } catch (\Stripe\Error\Authentication $ex) {
           // Authentication with Stripe's API failed
           // (maybe you changed API keys recently)
-            $saveResult = new \DblEj\Integration\Ecommerce\SaveCardResult("", $ex->getMessage()." ".$ex->getTraceAsString(), "Error saving account", "Please contact Plazko.com support.");
+            $saveResult = new \DblEj\Integration\Ecommerce\SaveCardResult("", $ex->getMessage()." ".$ex->getTraceAsString(), "Error saving account", "Please contact support.");
         } catch (\Stripe\Error\ApiConnection $ex) {
           // Network communication with Stripe failed
             $saveResult = new \DblEj\Integration\Ecommerce\SaveCardResult("", $ex->getMessage()." ".$ex->getTraceAsString(), "Error saving account", "This error might be temporary. Please try again.");
