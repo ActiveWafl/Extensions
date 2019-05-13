@@ -162,12 +162,28 @@ implements \DblEj\Commerce\Integration\IPaymentGatewayExtension
      * @param string $emailAddress
      * @return type
      */
-	public static function AddCustomer($emailAddress = null, $description = null)
+	public static function AddCustomer($emailAddress = null, $description = null, $fullname = null, $phone = null, $streetAddress = null, $city = null, $state = null, $country = "US", $postalCode = null)
 	{
-        require_once("phar://".__DIR__.DIRECTORY_SEPARATOR."Stripe4.1.1.phar".DIRECTORY_SEPARATOR."Stripe.php");
-        $accountArray = ["email" => $emailAddress, "description" => $description];
-        $customer = \Stripe\Customer::create($accountArray);
-        return $customer->id;
+            require_once("phar://".__DIR__.DIRECTORY_SEPARATOR."Stripe4.1.1.phar".DIRECTORY_SEPARATOR."Stripe.php");
+            $accountArray = [
+                                "email" => $emailAddress, 
+                                "description" => $description,
+                                "name" => $fullname,
+                                "phone" => $phone,
+                            ];
+            if ($streetAddress)
+            {
+                $accountArray["address"] = 
+                [
+                    "line1" => $streetAddress,
+                    "city" => $city,
+                    "state" => $state,
+                    "postal_code" => $postalCode,
+                    "country" => $country,
+                ];
+            }
+            $customer = \Stripe\Customer::create($accountArray);
+            return $customer->id;
 	}
 
 	public static function EditCustomer($customerToken, $emailAddress = null, $description = null)
