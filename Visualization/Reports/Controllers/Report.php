@@ -55,10 +55,9 @@ extends ControllerBase
                 $options->AddToken($allInputs);
                 $options->AddToken(["REPORT_INPUTS"=>$report->GetAllInputs()]);
                 $options->AddToken(["REPORT_INPUT_DEPENDENCIES"=>$report->GetInputDependencies()]);
-                $options->AddToken(["SET_REPORT_INPUTS"=>$allInputs]);
                 $options->AddToken(["REPORT"=>$report]);
-
             }
+            $options->AddToken(["SET_REPORT_INPUTS"=>$allInputs]);
         } else {
             $sitePage = $app->GetSitePage("Reports.ReportDirectory");
             $options->AddToken(["LAYOUT_FILE"=>$reportExtension->GetSettingValue("LayoutTemplate")]);

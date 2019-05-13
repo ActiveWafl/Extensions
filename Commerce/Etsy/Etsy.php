@@ -26,18 +26,76 @@ implements \DblEj\Commerce\Integration\ISellerAggregatorExtension
         }
     }
 
-    public function FindListings($titleSearch)
+    public function GetAllLIstings($activeOnly = true)
     {
-        //this was thrown together quickly, only checking active listings
-        $args = ["include_private"=>true, "keywords"=>$titleSearch];
+        //this was thrown together quickly, not standardized
+        $args = ["include_private"=>true];
         $apiResult = $this->callApi("shops/$this->_etsyShopName/listings/active", $args);
-
         if (isset($apiResult["results"]))
         {
-            return $apiResult["results"];
+            $results = $apiResult["results"];
         } else {
-            return null;
+            $results = [];
         }
+
+        if (!$activeOnly)
+        {
+            $apiResult = $this->callApi("shops/$this->_etsyShopName/listings/inactive", $args);
+            if (isset($apiResult["results"]))
+            {
+                foreach ($apiResult["results"] as $result)
+                {
+                    $results[] = $result;
+                }
+            }
+
+            $apiResult = $this->callApi("shops/$this->_etsyShopName/listings/expired", $args);
+            if (isset($apiResult["results"]))
+            {
+                foreach ($apiResult["results"] as $result)
+                {
+                    $results[] = $result;
+                }
+            }
+        }
+
+        return $results;
+    }
+
+    public function FindListings($titleSearch, $activeOnly = true)
+    {
+        //this was thrown together quickly, not standardized
+        $args = ["include_private"=>true, "keywords"=>$titleSearch];
+        $apiResult = $this->callApi("shops/$this->_etsyShopName/listings/active", $args);
+        if (isset($apiResult["results"]))
+        {
+            $results = $apiResult["results"];
+        } else {
+            $results = [];
+        }
+
+        if (!$activeOnly)
+        {
+            $apiResult = $this->callApi("shops/$this->_etsyShopName/listings/inactive", $args);
+            if (isset($apiResult["results"]))
+            {
+                foreach ($apiResult["results"] as $result)
+                {
+                    $results[] = $result;
+                }
+            }
+
+            $apiResult = $this->callApi("shops/$this->_etsyShopName/listings/expired", $args);
+            if (isset($apiResult["results"]))
+            {
+                foreach ($apiResult["results"] as $result)
+                {
+                    $results[] = $result;
+                }
+            }
+        }
+
+        return $results;
     }
 
     public function CreateListing($title, $description, $price, $quantity, $imageFiles = [], $category = null, $tags = [], $manufacturer = null, $providerArgs = [])
@@ -86,42 +144,33 @@ implements \DblEj\Commerce\Integration\ISellerAggregatorExtension
             return null;
         }
     }
-    public function GetOrders($minCreateDate = 0, $minLastModified = 0, $limit = 50, $offset = 0, $serviceArgs = [])
+    public function GetOrders($onlyOpen = false, $limit = 50, $offset = 0, $serviceArgs = [])
     {
-        $args = ["min_created"=>$minCreateDate, "min_last_modified"=>$minLastModified, "limit"=>$limit, "offset"=>$offset];
+        $args = ["limit"=>$limit, "offset"=>$offset];
 
-        $includeShippedOrders = isset($serviceArgs["Shipped Orders"])?$serviceArgs["Shipped Orders"]:null;
         $includeTransactions = isset($serviceArgs["Include Transaction Data"])?$serviceArgs["Include Transaction Data"]:true;
-        $wasPaid = isset($serviceArgs["Paid Orders"])?$serviceArgs["Paid Orders"]:null;
-        $maxCreate = isset($serviceArgs["Max Create Date"])?$serviceArgs["Max Create Date"]:null;
 
-        if ($maxCreate)
-        {
-            $args["max_created"] = $maxCreate;
-        }
-        if ($includeShippedOrders === true)
-        {
-            $args["was_shipped"] = "true";
-        } elseif ($includeShippedOrders === false) {
-            $args["was_shipped"] = "false";
-        }
         if ($includeTransactions)
         {
             $args["includes"]="Country,Transactions:100,Transactions/MainImage";
         }
-        if ($wasPaid === true)
+        if (isset($serviceArgs["min_last_modified"]))
         {
-            $args["was_paid"] = "true";
-        } elseif ($wasPaid === false) {
-            $args["was_paid"] = "false";
+            $args["min_last_modified"] = $serviceArgs["min_last_modified"];
         }
-
-        $rawOrders = $this->callApi("shops/$this->_etsyShopName/receipts", $args);
+        if ($onlyOpen)
+        {
+            $rawOrders = $this->callApi("shops/$this->_etsyShopName/receipts/open", $args);
+        } else {
+            $rawOrders = $this->callApi("shops/$this->_etsyShopName/receipts", $args);
+        }
         $orders = [];
-        $listingImageUrls = [];
         foreach ($rawOrders["results"] as $rawOrder)
         {
-            $orders[] = $this->_createOrderFromReceipt($rawOrder);
+            if (!$onlyOpen || $rawOrder["was_paid"])
+            {
+                $orders[] = $this->_createOrderFromReceipt($rawOrder);
+            }
         }
 
         return $orders;
@@ -183,7 +232,7 @@ implements \DblEj\Commerce\Integration\ISellerAggregatorExtension
             $shippingFirstName = $fullName;
             $shippingLastName = "";
         }
-        return new \Wafl\CommonObjects\Commerce\Order("Etsy.com", $rawOrder["receipt_id"], $rawOrder["creation_tsz"], $rawOrder["buyer_email"], $rawOrder["subtotal"],
+        return new \Wafl\CommonObjects\Commerce\Order("Etsy.com", $rawOrder["receipt_id"], $rawOrder["creation_tsz"], $rawOrder["buyer_email"], $rawOrder["subtotal"]+$rawOrder["discount_amt"],
                                                     $rawOrder["grandtotal"], $rawOrder["total_shipping_cost"], $rawOrder["total_tax_cost"], $rawOrder["total_price"],
                                                     $shippingFirstName, $shippingLastName, $rawOrder["first_line"], $rawOrder["second_line"], $rawOrder["city"], $rawOrder["state"], $buyerCountry, $rawOrder["zip"],
                                                     $rawOrder["shipping_details"]["shipping_method"], $paymentMethod, $paymentStatus, $lineItems,
@@ -208,6 +257,7 @@ implements \DblEj\Commerce\Integration\ISellerAggregatorExtension
         }
         $args = [];
         $args["was_shipped"] = true;
+
         $this->callApi("receipts/$uid", $args, true, \OAUTH_HTTP_METHOD_PUT);
     }
 
@@ -215,9 +265,34 @@ implements \DblEj\Commerce\Integration\ISellerAggregatorExtension
     {
         throw new \Wafl\Exceptions\Exception("Cannot void order.  Etsy API does not support voiding orders", E_WARNING, null, "The Etsy API does not currently support voiding orders.  You will need to cancel the order manually at Etsy.com");
     }
+
+    public function GetSupportedOperations()
+    {
+        return
+        [
+            "Refund"=>false,
+            "AddItemToOrder"=>false,
+            "GetShippingMethods"=>true,
+            "GetListingImageUrl"=>true,
+            "VoidOrder"=>false,
+            "MarkOrderShipped"=>true,
+            "AddShipment"=>true,
+            "GetOrders"=>true,
+            "GetOrder"=>true,
+            "CreateListing"=>true,
+            "FindListing"=>true,
+        ];
+    }
+
+    public function IsOperationSupported($operationName)
+    {
+        $supportedOps = $this->GetSupportedOperations();
+        return isset($supportedOps[$operationName])?$supportedOps[$operationName]:false;
+    }
     public function Refund($uid, $refundAmount, $notes="")
     {
         throw new \Wafl\Exceptions\Exception("Cannot issue refund.  Etsy API does not support refunds", E_WARNING, null, "The Etsy API does not currently support refunds.  You will need to do this manually at Etsy.com");
+        //need to return a refund id of some sort
     }
     public function AddItemToOrder($uid, $productCode, $addQty, $priceEach)
     {
@@ -375,11 +450,17 @@ implements \DblEj\Commerce\Integration\ISellerAggregatorExtension
             }
             catch (\OAuthException $ex)
             {
-                throw new \Exception("Error calling the Etsy API ($url): ".$ex->getMessage());
+                if (stristr($ex->lastResponse, "quota") !== false)
+                {
+                    //we have exceeded 24 hr quota.
+                    throw new \Wafl\Exceptions\Exception("Error calling the Etsy API ($url): ".$ex->getMessage().", ".$ex->lastResponse, E_ERROR, null, "Etsy 24 hr quota has been exceeded");
+                } else {
+                    throw new \Wafl\Exceptions\Exception("Error calling the Etsy API ($url): ".$ex->getMessage(), E_ERROR, null, "Error calling the Etsy API: ".$ex->lastResponse);
+                }
             }
             catch (\Exception $ex)
             {
-                throw new \Exception("Error calling the Etsy API ($url): ".$ex->getMessage());
+                throw new \Wafl\Exceptions\Exception("Error calling the Etsy API ($url): ".$ex->getMessage(), E_ERROR, null, "There was an unspecified error calling the Etsy API.");
             }
             $json = self::$_oauthObject->getLastResponse();
         } else {

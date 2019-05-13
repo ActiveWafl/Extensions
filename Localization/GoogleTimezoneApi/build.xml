@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project name="UPS Wafl Extension" default="Build">
-    <property name="ExtensionName" value="Ups"/>
-    <property name="ExtensionVersion" value="0.0.6" />
-    
+<project name="Google Maps Timezone API Wafl Extension" default="Build">
+    <property name="ExtensionName" value="GoogleTimezoneApi"/>
+    <property name="ExtensionVersion" value="0.0.1" />
+
     <condition property="is_windows">
         <os family="windows" />
     </condition>
@@ -40,7 +40,6 @@
             <arg value="${ExtensionName}" />
             <arg path="${basedir}" />
             <arg path="${basedir}" />
-            <arg value="${ExtensionVersion}" />
         </exec>
     </target>
 

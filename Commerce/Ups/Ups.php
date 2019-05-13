@@ -131,8 +131,8 @@ class Ups implements \DblEj\Commerce\Integration\IShipperExtension {
     }
 
     public function GetShippingCost(
-        $service, $sourceName, $sourceCompany = null, $sourceAddress = null, $sourceCity = null, $sourceStateOrRegion = null, $sourceCountry = null, $sourcePostalCode = null,
-        $sourcePhone = null, $sourceEmail = null, $destName = null, $destAddress = null, $destCity = null, $destStateOrRegion = null, $destCountry = null, $destPostalCode = null, $destPhone = null, $destEmail = null,
+        $service, $sourceName, $sourceCompany = null, $sourceAddress = null, $sourceAddress2 = null, $sourceCity = null, $sourceStateOrRegion = null, $sourceCountry = null, $sourcePostalCode = null,
+        $sourcePhone = null, $sourceEmail = null, $destName = null, $destAddress = null, $destAddress2 = null, $destCity = null, $destStateOrRegion = null, $destCountry = null, $destPostalCode = null, $destPhone = null, $destEmail = null,
         $packageType = null, $packageQualifier = null, $weight = null, $packageWidth = null, $packageHeight = null, $packageLength = null, $packageGirth = null,
         $valueOfContents = null, $tracking = false, $insuranceAmount = null, $codAmount = null, $contentsType = null, $serviceFlags = []
     )
@@ -153,9 +153,9 @@ class Ups implements \DblEj\Commerce\Integration\IShipperExtension {
         return [];
     }
 
-    public function GetServiceFlagNames($serviceName = null, $packageType = null, $packageQualifier = null)
+    public function GetServiceOptions($serviceName = null, $packageType = null, $packageQualifier = null)
     {
-        return [];
+        return ["Options"=>[], "AdvancedOptions"=>[]];
     }
 
     public function Configure($settingName, $settingValue)
@@ -263,9 +263,13 @@ class Ups implements \DblEj\Commerce\Integration\IShipperExtension {
 
     }
 
+    public function IsEventTimeLocal($carrierName)
+    {
+        return true; //i dont actually know, just setting to some default
+    }
 
-    public function CreateShipment($service, $sourceName, $sourceCompany = null, $sourceAddress = null, $sourceCity = null, $sourceStateOrRegion = null, $sourceCountry = null, $sourcePostalCode = null,
-        $sourcePhone = null, $sourceEmail = null, $destName = null, $destAddress = null, $destCity = null, $destStateOrRegion = null, $destCountry = null, $destPostalCode = null, $destPhone = null, $destEmail = null,
+    public function CreateShipment($service, $sourceName, $sourceCompany = null, $sourceAddress = null, $sourceAddress2 = null, $sourceCity = null, $sourceStateOrRegion = null, $sourceCountry = null, $sourcePostalCode = null,
+        $sourcePhone = null, $sourceEmail = null, $destName = null, $destAddress = null, $destAddress2 = null, $destCity = null, $destStateOrRegion = null, $destCountry = null, $destPostalCode = null, $destPhone = null, $destEmail = null,
         $packageType = null, $packageQualifier = null, $weight = null, $packageWidth = null, $packageHeight = null, $packageLength = null, $packageGirth = null,
         $valueOfContents = null, $tracking = false, $insuranceAmount = null, $codAmount = null, $contentsType = null, $serviceFlags = [])
     {
