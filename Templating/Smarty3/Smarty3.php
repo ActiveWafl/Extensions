@@ -5,7 +5,7 @@ namespace Wafl\Extensions\Templating\Smarty3;
 use DblEj\Application\IApplication,
     DblEj\Extension\ExtensionBase,
     DblEj\Extension\DependencyCollection,
-    DblEj\Text\Minifiers\Html,
+    DblEj\Minification\Html,
     DblEj\Presentation\ITemplate,
     DblEj\Presentation\RenderOptions,
     DblEj\UI\Stylesheet,
@@ -31,7 +31,13 @@ class Smarty3 extends ExtensionBase implements \DblEj\Presentation\Integration\I
 
 	public function Initialize(IApplication $app)
 	{
+            if (DIRECTORY_SEPARATOR == "\\")
+            {
+		require_once(__DIR__ . "/libs/Smarty.class.php");
+		require_once(__DIR__ . "/libs/Autoloader.php");
+            } else {
 		require_once("phar://" . __DIR__ . "/Smarty3.1.30.phar/Smarty.class.php");
+            }
 		$this->_smarty = new \Smarty();
 		$this->AddPluginFolder(__DIR__ . "/Plugins/");
 		foreach ($this->_pluginFolders as $pluginFolder)
