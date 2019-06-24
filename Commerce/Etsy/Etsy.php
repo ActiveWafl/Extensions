@@ -27,42 +27,6 @@ implements \DblEj\Commerce\Integration\ISellerAggregatorExtension
         }
     }
 
-    public function GetAllLIstings($activeOnly = true)
-    {
-        //this was thrown together quickly, not standardized
-        $args = ["include_private"=>true];
-        $apiResult = $this->callApi("shops/$this->_etsyShopName/listings/active", $args);
-        if (isset($apiResult["results"]))
-        {
-            $results = $apiResult["results"];
-        } else {
-            $results = [];
-        }
-
-        if (!$activeOnly)
-        {
-            $apiResult = $this->callApi("shops/$this->_etsyShopName/listings/inactive", $args);
-            if (isset($apiResult["results"]))
-            {
-                foreach ($apiResult["results"] as $result)
-                {
-                    $results[] = $result;
-                }
-            }
-
-            $apiResult = $this->callApi("shops/$this->_etsyShopName/listings/expired", $args);
-            if (isset($apiResult["results"]))
-            {
-                foreach ($apiResult["results"] as $result)
-                {
-                    $results[] = $result;
-                }
-            }
-        }
-
-        return $results;
-    }
-
     public function FindListings($titleSearch, $activeOnly = true)
     {
         //this was thrown together quickly, not standardized
