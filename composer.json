@@ -1,0 +1,10 @@
+{
+    "name": "wafl/core-extensions",
+    "description": "All native extensions for WAFL",
+    "require": {
+        "php": ">=7.0",
+        "wafl/dblej": ">0",
+        "wafl/wafl": ">0"
+    },
+    "license": "MIT"
+}
